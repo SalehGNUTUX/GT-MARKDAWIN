@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GT-MARKDAWIN — محرر ماركداون متطور</title>
+  <meta name="description" content="محرر مارك داون عصري يدعم العربية" />
+  <meta name="theme-color" content="#0b0f13" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="left-head">
+        <h1 class="app-title">📝 GT-MARKDAWIN</h1>
+        <div class="subtitle">محرر ماركداون عربي عصري</div>
+      </div>
+      <div class="header-right">
+        <select id="fontSelector" class="font-selector" title="اختيار الخط">
+          <option value="__system__">افتراضي النظام</option>
+        </select>
+        <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
+        <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرة">😊</button>
+        <button id="themeToggle" class="btn-icon" title="تبديل السمة">☀️</button>
+        <button id="fullscreenToggle" class="btn-icon" title="ملء الشاشة">⛶</button>
+      </div>
+    </header>
+
+    <nav class="toolbar" aria-label="شريط أدوات الماركداون">
+      <div class="toolbar-group">
+        <button data-cmd="bold" class="toolbar-btn" title="عريض (Ctrl+B)"><strong>B</strong></button>
+        <button data-cmd="italic" class="toolbar-btn" title="مائل (Ctrl+I)"><em>I</em></button>
+        <button data-cmd="code" class="toolbar-btn" title="كود inline">{ }</button>
+        <button data-cmd="codeblock" class="toolbar-btn" title="كتلة كود">```</button>
+        <button data-cmd="blockquote" class="toolbar-btn" title="اقتباس">❝</button>
+        <button data-cmd="hr" class="toolbar-btn" title="فاصل">―――</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="h1" class="toolbar-btn">H1</button>
+        <button data-cmd="h2" class="toolbar-btn">H2</button>
+        <button data-cmd="h3" class="toolbar-btn">H3</button>
+        <button data-cmd="h4" class="toolbar-btn">H4</button>
+        <button data-cmd="h5" class="toolbar-btn">H5</button>
+        <button data-cmd="h6" class="toolbar-btn">H6</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="ul" class="toolbar-btn">• قائمة</button>
+        <button data-cmd="ol" class="toolbar-btn">1. قائمة</button>
+        <button data-cmd="task" class="toolbar-btn">☑️ مهمة</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="table" class="toolbar-btn">جدول</button>
+        <button data-cmd="link" class="toolbar-btn">🔗 رابط</button>
+        <button data-cmd="image" class="toolbar-btn">🖼️ صورة</button>
+        <button data-cmd="align-left" class="toolbar-btn">⇤</button>
+        <button data-cmd="align-center" class="toolbar-btn">⇆</button>
+        <button data-cmd="align-right" class="toolbar-btn">⇥</button>
+      </div>
+    </nav>
+
+    <main class="editor-container">
+      <div class="editor-panel">
+        <div class="panel-header">
+          <h3>الكتابة</h3>
+          <div class="editor-actions">
+            <button id="togglePreview" class="btn-primary">إخفاء المعاينة</button>
+            <button id="clearBtn" class="btn-secondary">مسح</button>
+            <button id="importBtn" class="btn-secondary">استيراد</button>
+          </div>
+        </div>
+        <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN"></textarea>
+      </div>
+
+      <div class="preview-panel">
+        <div class="panel-header">
+          <h3>المعاينة</h3>
+          <div class="preview-actions">
+            <button id="exportHtml" class="btn-secondary">تصدير HTML</button>
+            </div>
+        </div>
+        <div id="preview" class="preview-content">المعاينة ستظهر هنا...</div>
+      </div>
+    </main>
+
+    <footer class="status-bar footer">
+      <div class="status-info">
+        <span id="wordCount">الكلمات: 0</span>
+        <span id="charCount">الحروف: 0</span>
+        <span id="lineCount">السطور: 1</span>
+      </div>
+      <div class="status-actions">
+        <button id="saveBtn" class="btn-success">💾 حفظ (Markdown)</button>
+        <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
+      </div>
+    </footer>
+
+    <div class="site-footer">
+      <div>مارك دَوِّنْ - GT-MARKDAWIN</div>
+      <div>صمم بحب ♥️ و شغف</div>
+      <div>تم التطوير بواسطة: <a href="[https://salehgnutux.github.io/gnutux/](https://salehgnutux.github.io/gnutux/)" target="_blank" rel="noopener noreferrer">GNUTUX</a></div>
+    </div>
+  </div>
+
+  <div id="linkModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h3>إدراج رابط</h3>
+      <input id="linkText" placeholder="نص الرابط" />
+      <input id="linkUrl" placeholder="[https://example.com](https://example.com)" />
+      <div class="modal-actions">
+        <button id="insertLink" class="btn-primary">إدراج</button>
+        <button id="cancelLink" class="btn-secondary">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="imageModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h3>إدراج صورة</h3>
+      <input id="imageAlt" placeholder="النص البديل" />
+      <input id="imageUrl" placeholder="[https://example.com/image.jpg](https://example.com/image.jpg)" />
+      <div class="modal-actions">
+        <button id="insertImage" class="btn-primary">إدراج</button>
+        <button id="cancelImage" class="btn-secondary">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="emojiPanel" class="emoji-panel hidden"></div>
+
+  <script src="marked.umd.js"></script>
+  <script src="script.js"></script>
+
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('Service Worker مسجل:', reg.scope))
+          .catch(err => console.error('فشل تسجيل Service Worker:', err));
+      });
+    }
+  </script>
+</body>
+</html>

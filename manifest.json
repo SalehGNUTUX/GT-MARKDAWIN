@@ -1,0 +1,18 @@
+{
+    "name": "GT-MARKDAWIN",
+    "short_name": "MARKDAWIN",
+    "description": "محرر مارك داون عصري يدعم العربية",
+    "lang": "ar",
+    "dir": "rtl",
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#2c3e50",
+    "background_color": "#ffffff",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
