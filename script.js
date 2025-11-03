@@ -139,18 +139,19 @@ class EmojiManager {
         this.toggleBtn=toggleBtn;
         this.emojis=[];
         this.lastKey='';
-        this.useCDN = true; // استخدام CDN كخيار افتراضي
         this.init();
     }
 
     init(){
         if(!this.panel) return;
         this.toggleBtn.addEventListener('click', (e)=> {
-            e.stopPropagation();
+            e.stopPropagation(); // منع معالج النقر على المستند
             this.panel.classList.toggle('hidden');
             const rect = this.toggleBtn.getBoundingClientRect();
+            // تحديد موضع اللوحة بالنسبة للزر
             this.panel.style.top = (rect.bottom + 8)+'px';
 
+            // تعديل يسار/يمين بناءً على عرض النافذة لمنع التجاوز
             if ((rect.left + this.panel.offsetWidth) > window.innerWidth) {
                 this.panel.style.left = 'auto';
                 this.panel.style.right = (window.innerWidth - rect.right) + 'px';
@@ -166,127 +167,50 @@ class EmojiManager {
         });
 
         this.scanEmojis();
-        setInterval(()=>this.scanEmojis(), 30000); // تحديث كل 30 ثانية
+        setInterval(()=>this.scanEmojis(), 15000);
     }
 
     async scanEmojis(){
-        // المحاولة الأولى: جلب الإيموجي من المجلد المحلي
         try{
+            // *** إصلاح: تم تغيير المسار من 'emojis/list.json' إلى 'emojis.json' ***
             const r = await fetch('emojis.json', {cache:'no-cache'});
             if(r.ok){
                 const list = await r.json();
-                if (Array.isArray(list) && list.length) {
+                // *** إصلاح: تم تغيير المنطق لتحليل مصفوفة الكائنات واستخدام مسار 'svg' ***
+                if (Array.isArray(list)) {
                     const items = list.map(f=>({name: f.name, url: f.svg}));
                     this.apply(items);
-                    this.useCDN = false; // تعطيل CDN لأننا وجدنا ملفات محلية
                     return;
                 }
             }
         } catch(e){
-            console.warn("Could not load local emojis.json, falling back to CDN", e);
+            console.error("Error loading emojis.json", e);
         }
-
-        // المحاولة الثانية: استخدام Twitter Emojis CDN
-        if(this.useCDN){
-            await this.loadTwitterEmojis();
-        }
-    }
-
-    async loadTwitterEmojis(){
-        try {
-            // قائمة بالإيموجي الأساسية الأكثر استخداماً
-            const commonEmojis = [
-                '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', 
-                '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-                '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-                '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-                '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
-                '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
-                '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
-                '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
-                '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
-                '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾',
-                '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿',
-                '😾', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️', '🤞',
-                '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
-                '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
-                '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂',
-                '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋',
-                '🩸', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎',
-                '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'
-            ];
-
-            const twitterEmojis = commonEmojis.map(emoji => {
-                const codePoint = this.emojiToCodePoint(emoji);
-                return {
-                    name: emoji,
-                    url: `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${codePoint}.svg`
-                };
-            });
-
-            this.apply(twitterEmojis);
-            
-        } catch (error) {
-            console.error("Failed to load Twitter emojis", error);
-            this.panel.innerHTML='<div class="emoji-empty">فشل تحميل الإيموجي. تأكد من اتصال الإنترنت أو أضف ملف emojis.json</div>';
-        }
-    }
-
-    emojiToCodePoint(emoji) {
-        // تحويل الإيموجي إلى كود نقطي (code point)
-        return Array.from(emoji)
-            .map(char => char.codePointAt(0).toString(16))
-            .join('-')
-            .toLowerCase();
+        // *** هذا هو الإشعار الذي رأيته ***
+        this.panel.innerHTML='<div class="emoji-empty">فشل تحميل emojis.json</div>';
     }
 
     apply(list){
         const key=list.map(i=>i.url).join('|');
         if(key===this.lastKey) return;
-        this.lastKey=key; 
-        this.emojis=list;
-        
+        this.lastKey=key; this.emojis=list;
         this.panel.innerHTML='';
-        if(!list.length){ 
-            this.panel.innerHTML='<div class="emoji-empty">لا توجد رموز متاحة</div>'; 
-            return;
-        }
-        
-        const grid=document.createElement('div'); 
-        grid.className='emoji-grid';
-        
+        if(!list.length){ this.panel.innerHTML='<div class="emoji-empty">لا توجد رموز في مجلد emojis/</div>'; return;}
+        const grid=document.createElement('div'); grid.className='emoji-grid';
         list.forEach(item=>{
-            const b=document.createElement('button'); 
-            b.className='emoji-item';
+            const b=document.createElement('button'); b.className='emoji-item';
             b.title = item.name;
-            
-            const img=document.createElement('img'); 
-            img.src=item.url; 
-            img.alt=item.name; 
-            img.loading='lazy';
-            // إضافة معالجة للأخطاء
-            img.onerror = () => {
-                console.warn(`Failed to load emoji: ${item.url}`);
-                // يمكن إضافة أيقونة بديلة هنا إذا لزم الأمر
-            };
-            
+            const img=document.createElement('img'); img.src=item.url; img.alt=item.name; img.loading='lazy';
             b.appendChild(img);
             b.addEventListener('click', ()=>{
-                insertAtCursor(` ${item.name} `); // استخدام النص بدلاً من الصورة
+                // استخدم النص البديل (الاسم) كـ alt في الماركداون
+                insertAtCursor(`![${item.name}](${item.url})`);
                 notifier.show('تم إدراج رمز تعبيري','success',1200);
-                this.panel.classList.add('hidden');
+                this.panel.classList.add('hidden'); // إخفاء اللوحة بعد الاختيار
             });
             grid.appendChild(b);
         });
-        
         this.panel.appendChild(grid);
-        
-        // إشعار للمستخدم بمصدر الإيموجي
-        if(this.useCDN){
-            setTimeout(() => {
-                notifier.show('جاري استخدام إيموجي من الإنترنت', 'info', 2000);
-            }, 1000);
-        }
     }
 }
 
