@@ -145,13 +145,11 @@ class EmojiManager {
     init(){
         if(!this.panel) return;
         this.toggleBtn.addEventListener('click', (e)=> {
-            e.stopPropagation(); // منع معالج النقر على المستند
+            e.stopPropagation();
             this.panel.classList.toggle('hidden');
             const rect = this.toggleBtn.getBoundingClientRect();
-            // تحديد موضع اللوحة بالنسبة للزر
             this.panel.style.top = (rect.bottom + 8)+'px';
 
-            // تعديل يسار/يمين بناءً على عرض النافذة لمنع التجاوز
             if ((rect.left + this.panel.offsetWidth) > window.innerWidth) {
                 this.panel.style.left = 'auto';
                 this.panel.style.right = (window.innerWidth - rect.right) + 'px';
@@ -166,50 +164,86 @@ class EmojiManager {
             }
         });
 
-        this.scanEmojis();
-        setInterval(()=>this.scanEmojis(), 15000);
+        this.loadStaticEmojis();
     }
 
-    async scanEmojis(){
-        try{
-            // *** إصلاح: تم تغيير المسار من 'emojis/list.json' إلى 'emojis.json' ***
-            const r = await fetch('emojis.json', {cache:'no-cache'});
-            if(r.ok){
-                const list = await r.json();
-                // *** إصلاح: تم تغيير المنطق لتحليل مصفوفة الكائنات واستخدام مسار 'svg' ***
-                if (Array.isArray(list)) {
-                    const items = list.map(f=>({name: f.name, url: f.svg}));
-                    this.apply(items);
-                    return;
-                }
-            }
-        } catch(e){
-            console.error("Error loading emojis.json", e);
-        }
-        // *** هذا هو الإشعار الذي رأيته ***
-        this.panel.innerHTML='<div class="emoji-empty">فشل تحميل emojis.json</div>';
+    loadStaticEmojis(){
+        // قائمة إيموجي نصية ثابتة - لا تحتاج لتحميل ملفات
+        const staticEmojis = [
+            // الوجوه والمشاعر
+            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+            '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+            
+            // القلب والمشاعر
+            '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+            '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟',
+            
+            // الأيدي والإيماءات
+            '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟',
+            '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎',
+            '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏',
+            
+            // الرموز والأشياء
+            '⭐', '🌟', '✨', '⚡', '💥', '🔥', '💧', '💦', '☀️', '🌙',
+            '🌈', '🌊', '🎉', '🎊', '🎁', '🎈', '🎀', '🎄', '🎃', '🎂',
+            '🍎', '🍕', '🍦', '☕', '🎵', '🎸', '⚽', '🎮', '📱', '💻',
+            '📚', '✏️', '📎', '🔗', '💡', '🔑', '💰', '💎', '🎯', '🏆',
+            
+            // الرموز العملية
+            '✅', '✔️', '❌', '❎', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️',
+            '↙️', '↖️', '↔️', '↩️', '↪️', '⤴️', '⤵️', '🔃', '🔄', '🔙',
+            '🔚', '🔛', '🔜', '🔝', '🔀', '🔁', '🔂', '▶️', '⏩', '⏪',
+            '⏫', '⏬', '⏸️', '⏹️', '⏺️', '🔅', '🔆', '📶', '🔰', '♻️',
+            
+            // الرموز العربية والإسلامية
+            '☪️', '🕋', '🕌', '🕍', '📿', '🌙', '⭐', '🕯️', '📖', '✒️'
+        ];
+
+        const emojiList = staticEmojis.map(emoji => ({
+            name: emoji,
+            text: emoji
+        }));
+
+        this.apply(emojiList);
     }
 
     apply(list){
-        const key=list.map(i=>i.url).join('|');
-        if(key===this.lastKey) return;
-        this.lastKey=key; this.emojis=list;
-        this.panel.innerHTML='';
-        if(!list.length){ this.panel.innerHTML='<div class="emoji-empty">لا توجد رموز في مجلد emojis/</div>'; return;}
-        const grid=document.createElement('div'); grid.className='emoji-grid';
-        list.forEach(item=>{
-            const b=document.createElement('button'); b.className='emoji-item';
-            b.title = item.name;
-            const img=document.createElement('img'); img.src=item.url; img.alt=item.name; img.loading='lazy';
-            b.appendChild(img);
-            b.addEventListener('click', ()=>{
-                // استخدم النص البديل (الاسم) كـ alt في الماركداون
-                insertAtCursor(`![${item.name}](${item.url})`);
-                notifier.show('تم إدراج رمز تعبيري','success',1200);
-                this.panel.classList.add('hidden'); // إخفاء اللوحة بعد الاختيار
+        const key = list.map(i=>i.text).join('|');
+        if(key === this.lastKey) return;
+        
+        this.lastKey = key; 
+        this.emojis = list;
+        
+        this.panel.innerHTML = '';
+        
+        if(!list.length){ 
+            this.panel.innerHTML = '<div class="emoji-empty">لا توجد رموز متاحة</div>'; 
+            return;
+        }
+        
+        const grid = document.createElement('div'); 
+        grid.className = 'emoji-grid';
+        
+        list.forEach(item => {
+            const button = document.createElement('button'); 
+            button.className = 'emoji-item';
+            button.title = item.name;
+            button.textContent = item.text;
+            button.style.fontSize = '1.5rem'; // تكبير حجم الإيموجي النصي
+            button.style.padding = '8px';
+            
+            button.addEventListener('click', () => {
+                insertAtCursor(` ${item.text} `);
+                notifier.show('تم إدراج رمز تعبيري', 'success', 1200);
+                this.panel.classList.add('hidden');
             });
-            grid.appendChild(b);
+            
+            grid.appendChild(button);
         });
+        
         this.panel.appendChild(grid);
     }
 }
