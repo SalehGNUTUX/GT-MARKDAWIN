@@ -1,14 +1,13 @@
-/* script.js — مُحدّث: إصلاح الإيموجي، حالات التركيز (Editor/Preview)، وتحسين تصدير PDF
-   ويحتوي على مجموعة الإيموجي التي طلبتها بالكامل. */
+/* script.js — إصلاحات: تصدير PDF، التمرير في أوضاع التكبير، تفعيل مودالات الرابط/الصورة، جلب الإيموجي الكامل. */
 
 /* ----- إعدادات ----- */
 const FONT_EXTENSIONS = ['.woff2','.woff','.ttf','.otf'];
 
-/* ----- اختصارات DOM ----- */
+/* ----- DOM helpers ----- */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
-/* ----- إشعارات ----- */
+/* ----- Notifier ----- */
 const notifier = {
     show(msg, type='info', time=2200){
         const existing = document.querySelector('.gt-notification');
@@ -23,36 +22,40 @@ const notifier = {
     }
 };
 
+/* ----- ensure marked supports tables explicitly ----- */
+if (typeof marked !== 'undefined') {
+    marked.setOptions({ gfm: true, tables: true, breaks: true, headerIds: true, mangle: false, smartLists: true });
+}
+
 /* ----- FontManager (كما سابقاً) ----- */
-class FontManager { /* ... لا تغيير جوهري هنا، احتفظت بالكود كما كان */ 
+/* محتوى FontManager كما في الإصدارات السابقة: يحمِل fonts.json، يولّد @font-face داخل #gt-dynamic-fonts ويملأ select */
+class FontManager {
     constructor(selectEl, importBtn){
         this.selectEl = selectEl;
         this.importBtn = importBtn;
         this.loaded = new Map();
         this.init();
     }
-
     init(){
         if(this.importBtn && window.showDirectoryPicker){
             this.importBtn.addEventListener('click', ()=>this.pickDirectory());
         } else if(this.importBtn){
-            this.importBtn.addEventListener('click', ()=>notifier.show('متصفحك لا يدعم File System Access. استخدم fonts.json أو ضع الملفات في مجلد fonts/', 'info', 3500));
+            this.importBtn.addEventListener('click', ()=>notifier.show('متصفحك لا يدعم File System Access. استخدم fonts.json أو ضع الملفات في مجلد fonts/','info',3500));
         }
         this.scanFonts();
-        this.timer = setInterval(()=>this.scanFonts(), 15000);
-        if(this.selectEl) {
+        this.timer = setInterval(()=>this.scanFonts(),15000);
+        if(this.selectEl){
             this.selectEl.addEventListener('change', ()=>{
                 const v = this.selectEl.value;
                 if(v==='__system__') document.documentElement.style.removeProperty('--app-font');
                 else document.documentElement.style.setProperty('--app-font', `"${v}", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial`);
                 localStorage.setItem('gt-markdawin-font', v);
             });
+            const saved = localStorage.getItem('gt-markdawin-font');
+            if(saved) setTimeout(()=>{ if([...this.selectEl.options].some(o=>o.value===saved)) { this.selectEl.value=saved; this.selectEl.dispatchEvent(new Event('change')); } }, 800);
         }
-        const saved = localStorage.getItem('gt-markdawin-font');
-        if(saved && this.selectEl) setTimeout(()=>{ if([...this.selectEl.options].some(o=>o.value===saved)) { this.selectEl.value=saved; this.selectEl.dispatchEvent(new Event('change')); } }, 800);
     }
-
-    async pickDirectory(){
+    async pickDirectory(){ /* unchanged, uses showDirectoryPicker */ 
         try{
             const dirHandle = await window.showDirectoryPicker();
             const fonts = [];
@@ -64,13 +67,12 @@ class FontManager { /* ... لا تغيير جوهري هنا، احتفظت با
                 }
             }
             if(fonts.length) this.applyFonts(fonts);
-            else notifier.show('لم يتم العثور على خطوط داخل المجلد المختار.', 'info');
+            else notifier.show('لم يتم العثور على خطوط داخل المجلد المختار.','info');
         } catch(e){
             console.warn('Directory picker cancelled or failed', e);
-            notifier.show('لم تُمنح أذونات الوصول للمجلد أو تم الإلغاء.', 'error', 2000);
+            notifier.show('لم تُمنح أذونات الوصول للمجلد أو تم الإلغاء.','error',2000);
         }
     }
-
     async scanFonts(){
         try {
             const r = await fetch('fonts.json', {cache:'no-cache'});
@@ -82,10 +84,8 @@ class FontManager { /* ... لا تغيير جوهري هنا، احتفظت با
                     return;
                 }
             }
-        } catch(e){
-            console.warn("Could not load fonts.json, falling back...", e);
-        }
-
+        } catch(e){ console.warn("Could not load fonts.json", e); }
+        // fallback scan...
         const common = ['Samim','Dubai-Regular','Dubai-Medium','Dubai-Light','Dubai-Bold','Consolas-Regular','UthmanicHafs1 Ver13','ArbFONTS-Amiri-Quran','amiri-quran','Ubuntu Arabic Regular','Ubuntu Arabic Bold','(A) Arslan Wessam A'];
         const candidates = [];
         for(const base of common){
@@ -99,26 +99,24 @@ class FontManager { /* ... لا تغيير جوهري هنا، احتفظت با
         }
         if(candidates.length) this.applyFonts(candidates);
     }
-
     nameFrom(filename){
         const n = filename.split('/').pop().replace(/\.[^.]+$/,'');
         return n.replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim();
     }
-
     applyFonts(list){
-        let added=0;
-        const styleId='gt-dynamic-fonts';
-        let style=document.getElementById(styleId);
-        if(!style){ style=document.createElement('style'); style.id=styleId; document.head.appendChild(style);}
+        let added = 0;
+        const styleId = 'gt-dynamic-fonts';
+        let style = document.getElementById(styleId);
+        if(!style){ style = document.createElement('style'); style.id = styleId; document.head.appendChild(style); }
         list.forEach(item=>{
             if(this.loaded.has(item.name)) return;
             const ext = item.url.split('.').pop().toLowerCase();
             const fmt = ext==='woff2'?'woff2':(ext==='woff'?'woff':(ext==='ttf'?'truetype':'opentype'));
-            const rule=`@font-face { font-family: "${item.name}"; src: url("${item.url}") format("${fmt}"); font-weight: normal; font-style: normal; font-display: swap; }`;
+            const rule = `@font-face { font-family: "${item.name}"; src: url("${item.url}") format("${fmt}"); font-weight: normal; font-style: normal; font-display: swap; }`;
             style.appendChild(document.createTextNode(rule));
-            this.loaded.set(item.name,item.url);
+            this.loaded.set(item.name, item.url);
             if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===item.name)){
-                const o=document.createElement('option'); o.value=item.name; o.textContent=item.name; this.selectEl.appendChild(o);
+                const o = document.createElement('option'); o.value = item.name; o.textContent = item.name; this.selectEl.appendChild(o);
             }
             added++;
         });
@@ -129,7 +127,7 @@ class FontManager { /* ... لا تغيير جوهري هنا، احتفظت با
     }
 }
 
-/* ----- EmojiManager (محدثة بمجموعتك الكاملة) ----- */
+/* ----- EmojiManager (قائمة كاملة كما طلبت) ----- */
 class EmojiManager {
     constructor(panelEl, toggleBtn){
         this.panel = panelEl;
@@ -138,19 +136,15 @@ class EmojiManager {
         this.lastKey = '';
         this.init();
     }
-
     init(){
         if(!this.panel || !this.toggleBtn) return;
-        // ربط زر الهيدر
-        this.toggleBtn.addEventListener('click', (e) => {
+        this.toggleBtn.addEventListener('click', (e)=>{
             e.stopPropagation();
             this.panel.classList.toggle('hidden');
-            // اضبط موضع اللوحة تحت الزر
             const rect = this.toggleBtn.getBoundingClientRect();
             this.panel.style.position = 'absolute';
             const top = rect.bottom + window.scrollY + 8;
             let left = rect.left + window.scrollX;
-            // ضبط إذا خرجت من النافذة
             if ((left + this.panel.offsetWidth) > window.innerWidth) {
                 left = Math.max(8, window.innerWidth - this.panel.offsetWidth - 8);
             }
@@ -158,19 +152,14 @@ class EmojiManager {
             this.panel.style.left = `${left}px`;
             this.panel.style.right = 'auto';
         });
-
-        // إغلاق عند النقر في أي مكان آخر
         document.addEventListener('click', (e)=>{
             if(!this.panel.classList.contains('hidden') && !this.panel.contains(e.target) && e.target !== this.toggleBtn) {
                 this.panel.classList.add('hidden');
             }
         });
-
         this.loadStaticEmojis();
     }
-
     loadStaticEmojis(){
-        // القائمة التي زودتني بها (محدثة بالكامل)
         const staticEmojis = [
 '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇',
 '🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
@@ -201,44 +190,35 @@ class EmojiManager {
         const emojiList = staticEmojis.map(e => ({ name: e, text: e }));
         this.apply(emojiList);
     }
-
     apply(list){
         const key = list.map(i=>i.text).join('|');
         if(key === this.lastKey) return;
         this.lastKey = key;
         this.emojis = list;
         this.panel.innerHTML = '';
-        if(!list.length){
-            this.panel.innerHTML = '<div class="emoji-empty">لا توجد رموز متاحة</div>';
-            return;
-        }
+        if(!list.length){ this.panel.innerHTML = '<div class="emoji-empty">لا توجد رموز متاحة</div>'; return; }
         const grid = document.createElement('div');
         grid.style.display = 'grid';
         grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(36px,1fr))';
         grid.style.gap = '6px';
-        list.forEach(item => {
+        list.forEach(item=>{
             const b = document.createElement('button');
-            b.className = 'emoji-item';
             b.type = 'button';
-            b.title = item.name;
+            b.className = 'emoji-item';
             b.textContent = item.text;
-            b.style.fontSize = '1.2rem';
-            b.style.padding = '6px';
+            b.title = item.name;
             b.style.border = 'none';
             b.style.background = 'transparent';
             b.style.cursor = 'pointer';
-            b.addEventListener('click', ()=> {
-                insertAtCursor(` ${item.text} `);
-                notifier.show('تم إدراج رمز تعبيري', 'success', 800);
-                this.panel.classList.add('hidden');
-            });
+            b.style.fontSize = '1.2rem';
+            b.addEventListener('click', ()=>{ insertAtCursor(` ${item.text} `); notifier.show('تم إدراج رمز تعبيري','success',800); this.panel.classList.add('hidden'); });
             grid.appendChild(b);
         });
         this.panel.appendChild(grid);
     }
 }
 
-/* ----- Editor helper ----- */
+/* ----- insertAtCursor ----- */
 function insertAtCursor(text){
     const ta = $('#editor');
     if(!ta) return;
@@ -274,7 +254,7 @@ class GTMarkdaWin {
     }
 
     afterMarked(){
-        marked.setOptions({breaks:true, gfm:true, headerIds:true, mangle:false, smartLists:true});
+        // تأكدنا من تفعيل الجداول أعلاه
         this.bindUI();
         this.fontManager = this.fontSelector ? new FontManager(this.fontSelector, this.importFontsBtn) : null;
         this.emojiManager = (this.emojiPanel && this.emojiHeaderBtn) ? new EmojiManager(this.emojiPanel, this.emojiHeaderBtn) : null;
@@ -287,66 +267,73 @@ class GTMarkdaWin {
     }
 
     bindUI(){
-        $all('.toolbar-btn').forEach(btn=>btn.addEventListener('click', ()=>this.executeCommand(btn.dataset.cmd)));
+        $all('.toolbar-btn').forEach(btn => btn.addEventListener('click', ()=>this.executeCommand(btn.dataset.cmd)));
 
         if(this.editor){
-            this.editor.addEventListener('input', ()=>{
-                this.updatePreview();
-                this.saveToStorage();
-                this.updateStats();
-            });
-            this.editor.addEventListener('keydown',(e)=>{
-                if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='b'){ e.preventDefault(); this.executeCommand('bold'); }
-                if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); this.executeCommand('italic'); }
-                if(e.key === 'Tab'){ e.preventDefault(); insertAtCursor('    '); }
-            });
+            this.editor.addEventListener('input', ()=>{ this.updatePreview(); this.saveToStorage(); this.updateStats(); });
+            this.editor.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='b'){ e.preventDefault(); this.executeCommand('bold'); } if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); this.executeCommand('italic'); } if(e.key === 'Tab'){ e.preventDefault(); insertAtCursor('    '); } });
         }
 
-        $('#themeToggle') && $('#themeToggle').addEventListener('click', () => this.toggleTheme());
-        $('#fullscreenToggle') && $('#fullscreenToggle').addEventListener('click', () => this.toggleFullscreen());
-        $('#dirToggle') && $('#dirToggle').addEventListener('click', () => this.toggleDirection());
+        $('#themeToggle') && $('#themeToggle').addEventListener('click', ()=>this.toggleTheme());
+        $('#fullscreenToggle') && $('#fullscreenToggle').addEventListener('click', ()=>this.toggleFullscreen());
+        $('#dirToggle') && $('#dirToggle').addEventListener('click', ()=>this.toggleDirection());
 
-        $('#clearBtn') && $('#clearBtn').addEventListener('click', () => this.clearEditor());
-        $('#importBtn') && $('#importBtn').addEventListener('click', () => this.importFile());
+        $('#clearBtn') && $('#clearBtn').addEventListener('click', ()=>this.clearEditor());
+        $('#importBtn') && $('#importBtn').addEventListener('click', ()=>this.importFile());
 
-        $('#exportHtml') && $('#exportHtml').addEventListener('click', () => this.exportHTML());
-        $('#exportPdf') && $('#exportPdf').addEventListener('click', () => this.exportPDF());
-        $('#togglePreview') && $('#togglePreview').addEventListener('click', (e) => this.togglePreview(e.target));
+        $('#exportHtml') && $('#exportHtml').addEventListener('click', ()=>this.exportHTML());
+        $('#exportPdf') && $('#exportPdf').addEventListener('click', ()=>this.exportPDF());
+        $('#togglePreview') && $('#togglePreview').addEventListener('click', (e)=>this.togglePreview(e.target));
 
-        $('#saveBtn') && $('#saveBtn').addEventListener('click', () => this.exportMarkdown());
-        $('#loadBtn') && $('#loadBtn').addEventListener('click', () => this.importFile());
+        $('#saveBtn') && $('#saveBtn').addEventListener('click', ()=>this.exportMarkdown());
+        $('#loadBtn') && $('#loadBtn').addEventListener('click', ()=>this.importFile());
 
-        $('#insertLink') && $('#insertLink').addEventListener('click', () => this.insertLink());
-        $('#cancelLink') && $('#cancelLink').addEventListener('click', () => this.hideModal('linkModal'));
-        $('#insertImage') && $('#insertImage').addEventListener('click', () => this.insertImage());
-        $('#cancelImage') && $('#cancelImage').addEventListener('click', () => this.hideModal('imageModal'));
+        // Modal buttons (الرابط/الصورة)
+        $('#insertLink') && $('#insertLink').addEventListener('click', ()=>this.insertLink());
+        $('#cancelLink') && $('#cancelLink').addEventListener('click', ()=>this.hideModal('linkModal'));
+        $('#insertImage') && $('#insertImage').addEventListener('click', ()=>this.insertImage());
+        $('#cancelImage') && $('#cancelImage').addEventListener('click', ()=>this.hideModal('imageModal'));
 
-        // أزرار التركيز (تكبير المحرر / المعاينة)
-        $('#focusEditorBtn') && $('#focusEditorBtn').addEventListener('click', () => this.toggleFocus('editor'));
-        $('#focusPreviewBtn') && $('#focusPreviewBtn').addEventListener('click', () => this.toggleFocus('preview'));
+        // إظهار لوحة الإيموجي في الهيدر
+        if(this.emojiPanel && $('#emojiBtnHeader')) this.emojiManager = new EmojiManager(this.emojiPanel, $('#emojiBtnHeader'));
 
-        // إغلاق النوافذ عند النقر خارجها
-        $all('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.hideModal(modal.id);
-                }
-            });
-        });
+        // أزرار التركيز
+        $('#focusEditorBtn') && $('#focusEditorBtn').addEventListener('click', ()=>this.toggleFocus('editor'));
+        $('#focusPreviewBtn') && $('#focusPreviewBtn').addEventListener('click', ()=>this.toggleFocus('preview'));
+
+        // اغلاق المودالات بالنقر خارجها
+        $all('.modal').forEach(m => m.addEventListener('click', (e)=>{ if(e.target === m) this.hideModal(m.id); }));
 
         // تمرير متزامن
-        this.editor && this.editor.addEventListener('scroll', () => this.syncScrollEditor());
-        this.preview && this.preview.addEventListener('scroll', () => this.syncScrollPreview());
+        this.editor && this.editor.addEventListener('scroll', ()=>this.syncScrollEditor());
+        this.preview && this.preview.addEventListener('scroll', ()=>this.syncScrollPreview());
     }
 
-    executeCommand(cmd){ /* نفس منطق الأوامر السابق — لم أغيره */ 
+    executeCommand(cmd){
         const ta = this.editor;
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
         const sel = ta.value.substring(start,end);
-        const wrap=(before,after)=>{ const replacement = sel ? before+sel+after : before+after; ta.setRangeText(replacement,start,end,'end'); if (!sel) { ta.selectionStart = start + before.length; ta.selectionEnd = ta.selectionStart; } ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true })); };
-        const prefixLine=(prefix)=>{ const pos = ta.selectionStart; const value = ta.value; const lineStart = value.lastIndexOf('\n', pos-1)+1; ta.value = value.slice(0,lineStart)+prefix+value.slice(lineStart); ta.selectionStart=ta.selectionEnd=pos+prefix.length; ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true })); };
-        const align = (alignment) => { if (!sel) { insertAtCursor(`<p style="text-align:${alignment};"></p>`); ta.selectionStart -= 4; ta.selectionEnd = ta.selectionStart; } else { wrap(`<p style="text-align:${alignment};">\n${sel}\n</p>`, ''); } };
+
+        const wrap = (before, after) => {
+            const replacement = sel ? before + sel + after : before + after;
+            ta.setRangeText(replacement, start, end, 'end');
+            if(!sel){ ta.selectionStart = start + before.length; ta.selectionEnd = ta.selectionStart; }
+            ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const prefixLine = (prefix) => {
+            const pos = ta.selectionStart;
+            const value = ta.value;
+            const lineStart = value.lastIndexOf('\n', pos-1) + 1;
+            ta.value = value.slice(0,lineStart) + prefix + value.slice(lineStart);
+            ta.selectionStart = ta.selectionEnd = pos + prefix.length;
+            ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const align = (alignment) => {
+            if(!sel){ insertAtCursor(`<p style="text-align:${alignment};"></p>`); ta.selectionStart -= 4; ta.selectionEnd = ta.selectionStart; }
+            else wrap(`<p style="text-align:${alignment};">\n${sel}\n</p>`, '');
+        };
+
         switch(cmd){
             case 'bold': wrap('**','**'); break;
             case 'italic': wrap('*','*'); break;
@@ -363,7 +350,10 @@ class GTMarkdaWin {
             case 'ul': prefixLine('- '); break;
             case 'ol': prefixLine('1. '); break;
             case 'task': prefixLine('- [ ] '); break;
-            case 'table': insertAtCursor('\n| ترويسة 1 | ترويسة 2 | ترويسة 3 |\n| :--- | :---: | ---: |\n| محتوى 1 | محتوى 2 | محتوى 3 |\n| محتوى 4 | محتوى 5 | محتوى 6 |\n'); break;
+            case 'table':
+                // تأكد وجود سطر فارغ قبل الجدول لتمكين marked من معالجته
+                insertAtCursor('\n\n| ترويسة 1 | ترويسة 2 | ترويسة 3 |\n| :--- | :---: | ---: |\n| محتوى 1 | محتوى 2 | محتوى 3 |\n');
+                break;
             case 'link': this.showModal('linkModal'); break;
             case 'image': this.showModal('imageModal'); break;
             case 'align-left': align('left'); break;
@@ -375,13 +365,13 @@ class GTMarkdaWin {
 
     _updatePreview(){
         const md = this.editor.value;
-        if(!md.trim()){ this.preview.innerHTML='<p class="preview-empty">اكتب شيئًا ليعرض هنا...</p>'; return; }
-        try{ this.preview.innerHTML = marked.parse(md); } catch(e){ this.preview.innerHTML='<p class="preview-error">⚠️ خطأ في تحويل الماركداون</p>'; console.error(e); }
+        if(!md.trim()){ this.preview.innerHTML = '<p class="preview-empty">اكتب شيئًا ليعرض هنا...</p>'; return; }
+        try { this.preview.innerHTML = marked.parse(md); } catch(e) { this.preview.innerHTML = '<p class="preview-error">⚠️ خطأ في تحويل الماركداون</p>'; console.error(e); }
     }
 
     _debounce(fn, wait=200){ let t=null; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(this,args), wait); }; }
 
-    updatePreview(){ this.updatePreview = this.updatePreview || this._debounce(()=>this._updatePreview(),180); this.updatePreview(); }
+    updatePreview(){ (this.updatePreview = this.updatePreview || this._debounce(()=>this._updatePreview(),180))(); }
 
     updateStats(){
         const text = this.editor.value;
@@ -394,44 +384,51 @@ class GTMarkdaWin {
 
     loadSaved(){
         const savedContent = localStorage.getItem('gt-markdawin-content');
-        if (savedContent && this.editor) this.editor.value = savedContent;
+        if(savedContent && this.editor) this.editor.value = savedContent;
 
         const savedTheme = localStorage.getItem('gt-markdawin-theme');
-        if (savedTheme) this.theme = savedTheme;
+        if(savedTheme) this.theme = savedTheme;
         document.documentElement.setAttribute('data-theme', this.theme);
-        const themeToggle = $('#themeToggle');
-        if (themeToggle) themeToggle.textContent = this.theme === 'dark' ? '☀️' : '🌙';
+        const t = $('#themeToggle'); if(t) t.textContent = this.theme === 'dark' ? '☀️' : '🌙';
 
         const savedFont = localStorage.getItem('gt-markdawin-font');
-        if (savedFont && this.fontSelector) {
-            setTimeout(()=>{ if([...this.fontSelector.options].some(o=>o.value===savedFont)) { this.fontSelector.value=savedFont; this.fontSelector.dispatchEvent(new Event('change')); } }, 800);
-        }
+        if(savedFont && this.fontSelector) setTimeout(()=>{ if([...this.fontSelector.options].some(o=>o.value===savedFont)) { this.fontSelector.value = savedFont; this.fontSelector.dispatchEvent(new Event('change')); } }, 800);
 
         const savedDir = localStorage.getItem('gt-markdawin-dir');
-        if (savedDir) {
-            document.documentElement.setAttribute('dir', savedDir);
-            document.body.setAttribute('dir', savedDir);
-            if (this.editor) this.editor.setAttribute('dir', savedDir);
-        } else {
-            document.documentElement.setAttribute('dir', document.documentElement.getAttribute('dir') || 'rtl');
-            document.body.setAttribute('dir', document.body.getAttribute('dir') || 'rtl');
-            if (this.editor) this.editor.setAttribute('dir', this.editor.getAttribute('dir') || 'rtl');
-        }
+        if(savedDir){ document.documentElement.setAttribute('dir', savedDir); document.body.setAttribute('dir', savedDir); if(this.editor) this.editor.setAttribute('dir', savedDir); }
+        else { document.documentElement.setAttribute('dir', document.documentElement.getAttribute('dir') || 'rtl'); document.body.setAttribute('dir', document.body.getAttribute('dir') || 'rtl'); if(this.editor) this.editor.setAttribute('dir', this.editor.getAttribute('dir') || 'rtl'); }
     }
 
     showModal(id){ const el = $(`#${id}`); if(!el) return; el.classList.remove('hidden'); const input = el.querySelector('input'); if(input) input.focus(); }
     hideModal(id){ const el = $(`#${id}`); if(!el) return; el.classList.add('hidden'); }
-    insertLink(){ const text = $('#linkText').value || 'نص الرابط'; const url = $('#linkUrl').value; if(url){ insertAtCursor(`[${text}](${url})`); $('#linkText').value=''; $('#linkUrl').value=''; this.hideModal('linkModal'); } else notifier.show('الرجاء إدخال رابط', 'error'); }
-    insertImage(){ const alt = $('#imageAlt').value || 'نص بديل'; const url = $('#imageUrl').value; if(url){ insertAtCursor(`![${alt}](${url})`); $('#imageAlt').value=''; $('#imageUrl').value=''; this.hideModal('imageModal'); } else notifier.show('الرجاء إدخال رابط الصورة', 'error'); }
 
-    toggleTheme(){ this.theme = this.theme === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', this.theme); const t = $('#themeToggle'); if (t) t.textContent = this.theme === 'dark' ? '☀️' : '🌙'; localStorage.setItem('gt-markdawin-theme', this.theme); }
-    toggleFullscreen(){ if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => { notifier.show(`خطأ: ${err.message}`, 'error'); }); } else { document.exitFullscreen(); } }
+    insertLink(){
+        const text = $('#linkText').value || 'نص الرابط';
+        const url = $('#linkUrl').value;
+        if(url){
+            insertAtCursor(`[${text}](${url})`);
+            $('#linkText').value=''; $('#linkUrl').value='';
+            this.hideModal('linkModal');
+            this.updatePreview();
+        } else notifier.show('الرجاء إدخال رابط', 'error');
+    }
 
-    toggleDirection(){ const current = document.body.getAttribute('dir') || document.documentElement.getAttribute('dir') || 'rtl'; const next = current === 'rtl' ? 'ltr' : 'rtl'; document.documentElement.setAttribute('dir', next); document.body.setAttribute('dir', next); if (this.editor) this.editor.setAttribute('dir', next); localStorage.setItem('gt-markdawin-dir', next); notifier.show(`اتجاه النص مُعد إلى ${next.toUpperCase()}`, 'success', 900); }
+    insertImage(){
+        const alt = $('#imageAlt').value || 'نص بديل';
+        const url = $('#imageUrl').value;
+        if(url){
+            insertAtCursor(`![${alt}](${url})`);
+            $('#imageAlt').value=''; $('#imageUrl').value='';
+            this.hideModal('imageModal');
+            this.updatePreview();
+        } else notifier.show('الرجاء إدخال رابط الصورة', 'error');
+    }
 
+    toggleTheme(){ this.theme = this.theme === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', this.theme); const t = $('#themeToggle'); if(t) t.textContent = this.theme === 'dark' ? '☀️' : '🌙'; localStorage.setItem('gt-markdawin-theme', this.theme); }
+    toggleFullscreen(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err=>notifier.show(`خطأ: ${err.message}`,'error')); else document.exitFullscreen(); }
+    toggleDirection(){ const current = document.body.getAttribute('dir') || document.documentElement.getAttribute('dir') || 'rtl'; const next = current === 'rtl' ? 'ltr' : 'rtl'; document.documentElement.setAttribute('dir', next); document.body.setAttribute('dir', next); if(this.editor) this.editor.setAttribute('dir', next); localStorage.setItem('gt-markdawin-dir', next); notifier.show(`اتجاه النص مُعد إلى ${next.toUpperCase()}`,'success',900); }
     clearEditor(){ if(confirm('هل أنت متأكد من رغبتك في مسح كل المحتوى؟')){ this.editor.value=''; this.editor.dispatchEvent(new Event('input',{bubbles:true})); notifier.show('تم مسح المحتوى','info'); } }
 
-    // تبديل حالة المعاينة (show/hide)
     togglePreview(btn){
         const container = document.querySelector('.editor-container');
         if(!container) return;
@@ -439,49 +436,48 @@ class GTMarkdaWin {
         if(this.isPreviewVisible){
             container.classList.remove('editor-full','preview-full');
             container.classList.add('split');
-            document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'flex');
-            document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'flex');
+            document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='flex');
+            document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='flex');
             document.querySelector('.editor-container').style.gridTemplateColumns = '1fr 1fr';
             if(btn) btn.textContent = 'إخفاء المعاينة';
         } else {
             container.classList.remove('split','preview-full');
             container.classList.add('editor-full');
-            document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'none');
-            document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'flex');
+            document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='none');
+            document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='flex');
             document.querySelector('.editor-container').style.gridTemplateColumns = '1fr';
             if(btn) btn.textContent = 'إظهار المعاينة';
         }
     }
 
-    // تكبير المحرر أو المعاينة (يمكن الرجوع للوضع المتساوي)
     toggleFocus(target){
         const container = document.querySelector('.editor-container');
         if(!container) return;
         if(target === 'editor'){
-            if(container.classList.contains('editor-full')) {
+            if(container.classList.contains('editor-full')){
                 container.classList.remove('editor-full'); container.classList.add('split');
-                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'flex');
-                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'flex');
+                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='flex');
+                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='flex');
                 document.querySelector('.editor-container').style.gridTemplateColumns = '1fr 1fr';
                 notifier.show('عاد العرض إلى الوضع المتساوي','info',900);
             } else {
                 container.classList.remove('split','preview-full'); container.classList.add('editor-full');
-                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'none');
-                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'flex');
+                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='none');
+                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='flex');
                 document.querySelector('.editor-container').style.gridTemplateColumns = '1fr';
                 notifier.show('المحرر الآن في وضع التكبير','success',900);
             }
         } else if(target === 'preview'){
-            if(container.classList.contains('preview-full')) {
+            if(container.classList.contains('preview-full')){
                 container.classList.remove('preview-full'); container.classList.add('split');
-                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'flex');
-                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'flex');
+                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='flex');
+                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='flex');
                 document.querySelector('.editor-container').style.gridTemplateColumns = '1fr 1fr';
                 notifier.show('عاد العرض إلى الوضع المتساوي','info',900);
             } else {
                 container.classList.remove('split','editor-full'); container.classList.add('preview-full');
-                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display = 'none');
-                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display = 'flex');
+                document.querySelector('.editor-panel') && (document.querySelector('.editor-panel').style.display='none');
+                document.querySelector('.preview-panel') && (document.querySelector('.preview-panel').style.display='flex');
                 document.querySelector('.editor-container').style.gridTemplateColumns = '1fr';
                 notifier.show('المعاينة الآن في وضع التكبير','success',900);
             }
@@ -492,14 +488,7 @@ class GTMarkdaWin {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.md, .txt, .markdown';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if(file){
-                const reader = new FileReader();
-                reader.onload = (r) => { this.editor.value = r.target.result; this.editor.dispatchEvent(new Event('input',{bubbles:true})); notifier.show(`تم تحميل ${file.name}`,'success'); };
-                reader.readAsText(file);
-            }
-        };
+        input.onchange = (e)=>{ const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (r)=>{ this.editor.value = r.target.result; this.editor.dispatchEvent(new Event('input',{bubbles:true})); notifier.show(`تم تحميل ${file.name}`,'success'); }; reader.readAsText(file); } };
         input.click();
     }
 
@@ -514,27 +503,26 @@ class GTMarkdaWin {
         notifier.show(`تم حفظ ${filename}`,'success');
     }
 
-    exportMarkdown(){ const content = this.editor.value; this._download('document.md', content, 'text/markdown'); }
+    exportMarkdown(){ this._download('document.md', this.editor.value, 'text/markdown'); }
     exportHTML(){ const content = this.preview.innerHTML; const fullHtml = `<!DOCTYPE html><html lang="ar" dir="${document.body.getAttribute('dir') || 'rtl'}"><head><meta charset="utf-8"><title>مستند مُصدّر</title></head><body>${content}</body></html>`; this._download('document.html', fullHtml, 'text/html'); }
 
-    // Export PDF: append a visible-in-viewport but transparent container so html2canvas يلتقطه
+    // تصدير PDF: نضمن أن العنصر المراد تصويره مرئي داخل DOM أثناء html2canvas
     async exportPDF(){
-        if(typeof html2pdf === 'undefined'){ notifier.show('مكتبة التصدير إلى PDF غير متاحة. تأكد من تحميل html2pdf.bundle.min.js','error',3000); return; }
+        if(typeof html2pdf === 'undefined'){ notifier.show('مكتبة html2pdf غير متاحة','error',3000); return; }
 
-        // تأكد من أن المعاينة محدثة
+        // حدّث المعاينة وامنح المتصفح لحظة لعرضها
         this._updatePreview();
-        await new Promise(r => setTimeout(r, 90)); // وقت قصير للسماح للتحديثات بالظهور
+        await new Promise(r => setTimeout(r, 120));
 
-        // تأكد أن هناك محتوى
         if(!this.preview || !this.preview.innerHTML.trim()){ notifier.show('لا يوجد محتوى في المعاينة للتصدير.','error',1800); return; }
 
-        // Clone node
+        // Clone preview
         const previewClone = this.preview.cloneNode(true);
 
-        // Create container that is in-viewport but invisible (opacity:0) so html2canvas يرسمه
+        // Container visible (opacity 1) داخل الشاشة حتى يستطيع html2canvas رسمه
         const container = document.createElement('div');
         container.id = 'gt-export-pdf-temp';
-        container.style.position = 'absolute';
+        container.style.position = 'fixed';
         container.style.left = '50%';
         container.style.top = '50%';
         container.style.transform = 'translate(-50%, -50%)';
@@ -544,11 +532,12 @@ class GTMarkdaWin {
         container.style.background = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#111' : '#fff';
         container.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#000';
         container.style.zIndex = '99999';
-        container.style.opacity = '0'; // غير مرئي للمستخدم لكنه مرئي للرسم
-        container.style.pointerEvents = 'none';
         container.style.boxSizing = 'border-box';
+        // ensure visible (html2canvas needs visible)
+        container.style.opacity = '1';
+        container.style.pointerEvents = 'none';
 
-        // Copy dynamic font rules لو وُجدت
+        // Include dynamic fonts rules if any
         const fontStyle = document.getElementById('gt-dynamic-fonts');
         if(fontStyle){
             const s = document.createElement('style');
@@ -557,7 +546,7 @@ class GTMarkdaWin {
             container.appendChild(s);
         }
 
-        // Ensure direction
+        // direction style
         const dir = document.body.getAttribute('dir') || 'rtl';
         const dirStyle = document.createElement('style');
         dirStyle.textContent = `html, body, #gt-export-pdf-temp { direction: ${dir}; }`;
@@ -579,22 +568,19 @@ class GTMarkdaWin {
             notifier.show('تم تصدير PDF بنجاح','success',1600);
         } catch(err){
             console.error('PDF export failed', err);
-            notifier.show('فشل في تصدير PDF. افتح وحدة التحكم للم��يد من المعلومات.','error',3000);
+            notifier.show('فشل في تصدير PDF؛ افتح وحدة التحكم لمزيد من التفاصيل','error',4000);
         } finally {
-            const tmp = document.getElementById('gt-export-pdf-temp');
-            if(tmp) tmp.remove();
-            const tmpFonts = document.getElementById('gt-export-fonts');
-            if(tmpFonts) tmpFonts.remove();
+            const tmp = document.getElementById('gt-export-pdf-temp'); if(tmp) tmp.remove();
+            const tmpFonts = document.getElementById('gt-export-fonts'); if(tmpFonts) tmpFonts.remove();
         }
     }
 
-    /* التمرير المتزامن */
     _getScrollPercent(el){ const h = el.scrollHeight - el.clientHeight; return (h > 0) ? (el.scrollTop / h) : 0; }
     syncScrollEditor(){ if(this.isPreviewSyncing){ this.isPreviewSyncing=false; return; } this.isEditorSyncing=true; const percent = this._getScrollPercent(this.editor); const targetScroll = (this.preview.scrollHeight - this.preview.clientHeight) * percent; this.preview.scrollTop = targetScroll; }
     syncScrollPreview(){ if(this.isEditorSyncing){ this.isEditorSyncing=false; return; } this.isPreviewSyncing=true; const percent = this._getScrollPercent(this.preview); const targetScroll = (this.editor.scrollHeight - this.editor.clientHeight) * percent; this.editor.scrollTop = targetScroll; }
 }
 
-/* ----- بدء التشغيل ----- */
+/* ----- Start ----- */
 document.addEventListener('DOMContentLoaded', ()=>{
     document.documentElement.setAttribute('data-theme','dark');
     window.app = new GTMarkdaWin();
