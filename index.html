@@ -8,9 +8,8 @@
   <meta name="theme-color" content="#0b0f13" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
-
+  <!-- استخدم أيقونة ملف محلي لتفادي خطأ Manifest -->
+  <link rel="icon" href="gt-markdawin-icon.png" type="image/png" />
   <!-- html2pdf bundle (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -40,7 +39,7 @@
         <button data-cmd="code" class="toolbar-btn" title="كود inline">{ }</button>
         <button data-cmd="codeblock" class="toolbar-btn" title="كتلة كود">```</button>
         <button data-cmd="blockquote" class="toolbar-btn" title="اقتباس">❝</button>
-        <button data-cmd="hr" class="toolbar-btn" title="ف��صل">―――</button>
+        <button data-cmd="hr" class="toolbar-btn" title="فاصل">―――</button>
       </div>
 
       <div class="toolbar-group">
@@ -68,7 +67,7 @@
       </div>
     </nav>
 
-    <main class="editor-container split"> <!-- افتراضي: توزيع متساوٍ (1fr 1fr) -->
+    <main class="editor-container split">
       <div class="editor-panel">
         <div class="panel-header">
           <h3>الكتابة</h3>
@@ -106,13 +105,45 @@
         <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
       </div>
     </footer>
+
+    <!-- تذييل المطوّر / رابط المستودع -->
+    <div class="site-footer" role="contentinfo">
+      <small>مطور: SalehGNUTUX — <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank" rel="noopener">رابط المستودع على GitHub</a></small>
+    </div>
   </div>
 
-  <!-- لوحة الإيموجي (موجودة ومعلقة حسب الزر) -->
+  <!-- لوحة الإيموجي -->
   <div id="emojiPanel" class="emoji-panel hidden" aria-hidden="true"></div>
 
-  <!-- احتفظ بالمودالات الأصلية (linkModal, imageModal...) من المشروع الأصلي هنا -->
-  <!-- ... -->
+  <!-- Modal لإدراج رابط -->
+  <div id="linkModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>إدراج رابط</h3>
+      <label>نص الرابط</label>
+      <input id="linkText" type="text" placeholder="نص الرابط (اختياري)" />
+      <label>رابط URL</label>
+      <input id="linkUrl" type="url" placeholder="https://example.com" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelLink" class="btn-secondary">إلغاء</button>
+        <button id="insertLink" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal لإدراج صورة -->
+  <div id="imageModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>إدراج صورة</h3>
+      <label>النص البديل</label>
+      <input id="imageAlt" type="text" placeholder="نص بديل للصورة" />
+      <label>رابط الصورة URL</label>
+      <input id="imageUrl" type="url" placeholder="https://example.com/image.png" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelImage" class="btn-secondary">إلغاء</button>
+        <button id="insertImage" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
 
   <script src="marked.umd.js"></script>
   <script src="script.js"></script>
