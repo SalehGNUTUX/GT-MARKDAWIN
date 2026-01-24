@@ -11,7 +11,7 @@
   <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
 
-  <!-- html2pdf bundle (يمكن استبداله أو حذفه إن أردت تحميله محلياً) -->
+  <!-- html2pdf bundle (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
           <option value="__system__">افتراضي النظام</option>
         </select>
         <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
-        <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرة">😊</button>
+        <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرية">😊</button>
         <button id="themeToggle" class="btn-icon" title="تبديل السمة">☀️</button>
         <button id="dirToggle" class="btn-icon" title="تبديل اتجاه النص">↔</button>
         <button id="fullscreenToggle" class="btn-icon" title="ملء الشاشة">⛶</button>
@@ -68,12 +68,13 @@
       </div>
     </nav>
 
-    <main class="editor-container">
+    <main class="editor-container split"> <!-- افتراضي: توزيع متساوٍ (1fr 1fr) -->
       <div class="editor-panel">
         <div class="panel-header">
           <h3>الكتابة</h3>
           <div class="editor-actions">
             <button id="togglePreview" class="btn-primary">إخفاء المعاينة</button>
+            <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">تكبير المحرر</button>
             <button id="clearBtn" class="btn-secondary">مسح</button>
             <button id="importBtn" class="btn-secondary">استيراد</button>
           </div>
@@ -87,6 +88,7 @@
           <div class="preview-actions">
             <button id="exportHtml" class="btn-secondary">تصدير HTML</button>
             <button id="exportPdf" class="btn-secondary">تصدير PDF</button>
+            <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">تكبير المعاينة</button>
           </div>
         </div>
         <div id="preview" class="preview-content">المعاينة ستظهر هنا...</div>
@@ -106,9 +108,11 @@
     </footer>
   </div>
 
-  <!-- النوافذ المنبثقة وغيرها (modals) — ضع نفس العناصر الموجودة في المشروع الأصلي -->
-  <!-- linkModal, imageModal, emojiPanel, notifications ... -->
-  <!-- (أترك باقي المودالات كما هي في المستودع الأصلي) -->
+  <!-- لوحة الإيموجي (مطلوبة ليعمل زر الإيموجي) -->
+  <div id="emojiPanel" class="emoji-panel modal hidden" aria-hidden="true"></div>
+
+  <!-- احتفظ بالمودالات الأصلية (linkModal, imageModal...) من المشروع الأصلي هنا -->
+  <!-- ... -->
 
   <script src="marked.umd.js"></script>
   <script src="script.js"></script>
