@@ -1,7 +1,6 @@
 /* =========================================
  *   GT-MARKDAWIN — styles.css (محدث)
- *   يحتوي تعديلات: توزيع متساوٍ افتراضياً، حالات تكبير/تركيز اللوحات،
- *   تحسين قائمة الخطوط، لوحة الإيموجي، وتعديلات مسافة/خط للمحرر والمعاينة
+ *   تحسين التمرير عند تكبير اللوحات، لوحة الإيموجي، وغيرها
  *   ========================================= */
 
 :root {
@@ -90,7 +89,6 @@ body {
 .editor-container.editor-full { display:grid; grid-template-columns: 1fr; }
 .editor-container.preview-full { display:grid; grid-template-columns: 1fr; }
 
-/* When focused states, hide the other panel */
 .editor-container.editor-full .preview-panel { display:none; }
 .editor-container.preview-full .editor-panel { display:none; }
 
@@ -101,7 +99,9 @@ body {
 
 /* Editor Textarea */
 #editor {
-    flex: 1;
+    /* نضمن امتلاء الحاوية وإمكانية التمرير داخل الـ textarea */
+    height: 100%;
+    width: 100%;
     padding: 22px;
     border: 0;
     resize: none;
@@ -112,6 +112,7 @@ body {
     color: var(--text);
     outline: none;
     tab-size: 4;
+    overflow: auto; /* مهم: يتيح التمرير داخل textarea */
     min-height: 320px;
 }
 #editor:focus { background: rgba(255,255,255,0.01); }
@@ -128,8 +129,8 @@ body {
     line-height: 1.8;
 }
 
-/* Emoji panel (modal-like) */
-.emoji-panel { position: absolute; z-index: 9998; min-width: 240px; max-width: 420px; max-height: 60vh; overflow:auto; background:var(--surface); color:var(--text); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.6); padding:8px; }
+/* Emoji panel (positioned absolute near the header button) */
+.emoji-panel { position: absolute; z-index: 9998; min-width: 240px; max-width: 520px; max-height: 60vh; overflow:auto; background:var(--surface); color:var(--text); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.6); padding:8px; }
 .emoji-panel.hidden { display:none; }
 
 /* Buttons */
