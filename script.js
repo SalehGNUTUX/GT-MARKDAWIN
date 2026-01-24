@@ -1,4 +1,4 @@
-/* script.js — GT-MARKDAWIN (النسخة النهائية الكاملة) */
+/* script.js — GT-MARKDAWIN (معدل: إضافة تصدير PDF، تبديل اتجاه، تكبير المساحة، إصلاح قائمة الخطوط) */
 
 /* ----- إعدادات ----- */
 const FONT_EXTENSIONS = ['.woff2','.woff','.ttf','.otf'];
@@ -35,7 +35,6 @@ class FontManager {
         if(this.importBtn && window.showDirectoryPicker){
             this.importBtn.addEventListener('click', ()=>this.pickDirectory());
         } else if(this.importBtn){
-            // هذا هو الإشعار الذي رأيته. سيختفي إذا نجح تحميل fonts.json
             this.importBtn.addEventListener('click', ()=>notifier.show('متصفحك لا يدعم File System Access. استخدم fonts.json أو ضع الملفات في مجلد fonts/', 'info', 3500));
         }
         this.scanFonts(); // Scan from fonts.json first
@@ -73,22 +72,20 @@ class FontManager {
 
     async scanFonts(){
         try {
-            // *** إصلاح: تم تغيير المسار من 'fonts/fonts.json' إلى 'fonts.json' ***
             const r = await fetch('fonts.json', {cache:'no-cache'});
             if(r.ok){
                 const list = await r.json();
                 if(Array.isArray(list) && list.length){
-                    // هذا المنطق يفترض أن ملفات الخطوط موجودة في مجلد /fonts/
                     const fonts = list.map(f=>({name:this.nameFrom(f), url:`fonts/${f}`}));
                     this.applyFonts(fonts);
-                    return; // توقف إذا تم العثور على fonts.json
+                    return;
                 }
             }
         } catch(e){
             console.warn("Could not load fonts.json, falling back...", e);
         }
 
-        // مسح احتياطي (كما كان في السكربت الأصلي)
+        // مسح احتياطي
         const common = ['Samim','Dubai-Regular','Dubai-Medium','Dubai-Light','Dubai-Bold','Consolas-Regular','UthmanicHafs1 Ver13','ArbFONTS-Amiri-Quran','amiri-quran','Ubuntu Arabic Regular','Ubuntu Arabic Bold','(A) Arslan Wessam A'];
         const candidates = [];
         for(const base of common){
@@ -168,82 +165,58 @@ class EmojiManager {
     }
 
     loadStaticEmojis(){
-        // قائمة إيموجي نصية ثابتة - لا تحتاج لتحميل ملفات
         const staticEmojis = [
-            // الوجوه والمشاعر
-            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-            '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
-            
-            // القلب والمشاعر
-            '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-            '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟',
-            
-            // الأيدي والإيماءات
-            '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟',
-            '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎',
-            '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏',
-            
-            // الرموز والأشياء
-            '⭐', '🌟', '✨', '⚡', '💥', '🔥', '💧', '💦', '☀️', '🌙',
-            '🌈', '🌊', '🎉', '🎊', '🎁', '🎈', '🎀', '🎄', '🎃', '🎂',
-            '🍎', '🍕', '🍦', '☕', '🎵', '🎸', '⚽', '🎮', '📱', '💻',
-            '📚', '✏️', '📎', '🔗', '💡', '🔑', '💰', '💎', '🎯', '🏆',
-            
-            // الرموز العملية
-            '✅', '✔️', '❌', '❎', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️',
-            '↙️', '↖️', '↔️', '↩️', '↪️', '⤴️', '⤵️', '🔃', '🔄', '🔙',
-            '🔚', '🔛', '🔜', '🔝', '🔀', '🔁', '🔂', '▶️', '⏩', '⏪',
-            '⏫', '⏬', '⏸️', '⏹️', '⏺️', '🔅', '🔆', '📶', '🔰', '♻️',
-            
-            // الرموز العربية والإسلامية
-            '☪️', '🕋', '🕌', '🕍', '📿', '🌙', '⭐', '🕯️', '📖', '✒️'
+            '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇',
+            '🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
+            '😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩',
+            '🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣',
+            '😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬',
+            '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔',
+            '❣️','💕','💞','💓','💗','💖','💘','💝','💟',
+            '👋','🤚','🖐️','✋','🖖','👌','🤏','✌️','🤞','🤟',
+            '🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎',
+            '✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏',
+            '⭐','🌟','✨','⚡','💥','🔥','💧','💦','☀️','🌙',
+            '🌈','🌊','🎉','🎊','🎁','🎈','🎀','🎄','🎃','🎂',
+            '🍎','🍕','🍦','☕','🎵','🎸','⚽','🎮','📱','💻',
+            '📚','✏️','📎','🔗','💡','🔑','💰','💎','🎯','🏆',
+            '✅','✔️','❌','❎','➡️','⬅️','⬆️','⬇️','↗️','↘️',
+            '↙️','↖️','↔️','↩️','↪️','⤴️','⤵️','🔃','🔄','🔙',
+            '🔚','🔛','🔜','🔝','🔀','🔁','🔂','▶️','⏩','⏪',
+            '⏫','⏬','⏸️','⏹️','⏺️','🔅','🔆','📶','🔰','♻️',
+            '☪️','🕋','🕌','🕍','📿','🌙','⭐','🕯️','📖','✒️'
         ];
 
-        const emojiList = staticEmojis.map(emoji => ({
-            name: emoji,
-            text: emoji
-        }));
-
+        const emojiList = staticEmojis.map(emoji => ({ name: emoji, text: emoji }));
         this.apply(emojiList);
     }
 
     apply(list){
         const key = list.map(i=>i.text).join('|');
         if(key === this.lastKey) return;
-        
-        this.lastKey = key; 
+        this.lastKey = key;
         this.emojis = list;
-        
         this.panel.innerHTML = '';
-        
-        if(!list.length){ 
-            this.panel.innerHTML = '<div class="emoji-empty">لا توجد رموز متاحة</div>'; 
+        if(!list.length){
+            this.panel.innerHTML = '<div class="emoji-empty">لا توجد رموز متاحة</div>';
             return;
         }
-        
-        const grid = document.createElement('div'); 
+        const grid = document.createElement('div');
         grid.className = 'emoji-grid';
-        
         list.forEach(item => {
-            const button = document.createElement('button'); 
+            const button = document.createElement('button');
             button.className = 'emoji-item';
             button.title = item.name;
             button.textContent = item.text;
-            button.style.fontSize = '1.5rem'; // تكبير حجم الإيموجي النصي
+            button.style.fontSize = '1.5rem';
             button.style.padding = '8px';
-            
             button.addEventListener('click', () => {
                 insertAtCursor(` ${item.text} `);
                 notifier.show('تم إدراج رمز تعبيري', 'success', 1200);
                 this.panel.classList.add('hidden');
             });
-            
             grid.appendChild(button);
         });
-        
         this.panel.appendChild(grid);
     }
 }
@@ -253,11 +226,8 @@ function insertAtCursor(text){
     const ta = $('#editor');
     const start = ta.selectionStart || 0;
     const end = ta.selectionEnd || 0;
-
     ta.setRangeText(text, start, end, 'end');
-
     ta.focus();
-    // إطلاق الأحداث يدوياً لتحديث المعاينة والإحصائيات
     ta.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
@@ -273,7 +243,7 @@ class GTMarkdaWin {
         this.isPreviewVisible=true;
         this.theme='dark';
 
-        // *** إضافة: متغيرات قفل التمرير المتزامن ***
+        // متغيرات قفل التمرير المتزامن
         this.isEditorSyncing = false;
         this.isPreviewSyncing = false;
 
@@ -295,7 +265,6 @@ class GTMarkdaWin {
         this.emojiManager = new EmojiManager(this.emojiPanel, this.emojiHeaderBtn);
         this.loadSaved();
 
-        // عمليات Debounce للعمليات المكلفة
         this.updatePreview = this._debounce(()=>this._updatePreview(), 180);
         this.saveToStorage = this._debounce(()=>this._saveToStorage(), 300);
 
@@ -317,37 +286,35 @@ class GTMarkdaWin {
         this.editor.addEventListener('keydown',(e)=>{
             if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='b'){ e.preventDefault(); this.executeCommand('bold'); }
             if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){ e.preventDefault(); this.executeCommand('italic'); }
-            // دعم مفتاح Tab للمسافة البادئة
             if(e.key === 'Tab') {
                 e.preventDefault();
                 insertAtCursor('    '); // 4 مسافات
             }
         });
 
-        // *** إضافة: ربط جميع الأزرار المفقودة ***
-
         // الرأس
-        $('#themeToggle').addEventListener('click', () => this.toggleTheme());
-        $('#fullscreenToggle').addEventListener('click', () => this.toggleFullscreen());
+        $('#themeToggle') && $('#themeToggle').addEventListener('click', () => this.toggleTheme());
+        $('#fullscreenToggle') && $('#fullscreenToggle').addEventListener('click', () => this.toggleFullscreen());
+        $('#dirToggle') && $('#dirToggle').addEventListener('click', () => this.toggleDirection());
 
         // لوحة المحرر
-        $('#clearBtn').addEventListener('click', () => this.clearEditor());
-        $('#importBtn').addEventListener('click', () => this.importFile());
+        $('#clearBtn') && $('#clearBtn').addEventListener('click', () => this.clearEditor());
+        $('#importBtn') && $('#importBtn').addEventListener('click', () => this.importFile());
 
         // لوحة المعاينة
-        $('#exportHtml').addEventListener('click', () => this.exportHTML());
-        // *** إصلاح: ربط الزر الذي تم نقله ***
-        $('#togglePreview').addEventListener('click', (e) => this.togglePreview(e.target));
+        $('#exportHtml') && $('#exportHtml').addEventListener('click', () => this.exportHTML());
+        $('#exportPdf') && $('#exportPdf').addEventListener('click', () => this.exportPDF());
+        $('#togglePreview') && $('#togglePreview').addEventListener('click', (e) => this.togglePreview(e.target));
 
         // شريط الحالة
-        $('#saveBtn').addEventListener('click', () => this.exportMarkdown());
-        $('#loadBtn').addEventListener('click', () => this.importFile());
+        $('#saveBtn') && $('#saveBtn').addEventListener('click', () => this.exportMarkdown());
+        $('#loadBtn') && $('#loadBtn').addEventListener('click', () => this.importFile());
 
         // النوافذ المنبثقة (Modals)
-        $('#insertLink').addEventListener('click', () => this.insertLink());
-        $('#cancelLink').addEventListener('click', () => this.hideModal('linkModal'));
-        $('#insertImage').addEventListener('click', () => this.insertImage());
-        $('#cancelImage').addEventListener('click', () => this.hideModal('imageModal'));
+        $('#insertLink') && $('#insertLink').addEventListener('click', () => this.insertLink());
+        $('#cancelLink') && $('#cancelLink').addEventListener('click', () => this.hideModal('linkModal'));
+        $('#insertImage') && $('#insertImage').addEventListener('click', () => this.insertImage());
+        $('#cancelImage') && $('#cancelImage').addEventListener('click', () => this.hideModal('imageModal'));
 
         // إغلاق النوافذ عند النقر خارجها
         $all('.modal').forEach(modal => {
@@ -358,7 +325,7 @@ class GTMarkdaWin {
             });
         });
 
-        // *** إضافة: ربط التمرير المتزامن ***
+        // ربط التمرير المتزامن
         this.editor.addEventListener('scroll', () => this.syncScrollEditor());
         this.preview.addEventListener('scroll', () => this.syncScrollPreview());
     }
@@ -388,11 +355,10 @@ class GTMarkdaWin {
             ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true }));
         };
 
-        // مساعد المحاذاة
         const align = (alignment) => {
             if (!sel) {
                 insertAtCursor(`<p style="text-align:${alignment};"></p>`);
-                ta.selectionStart -= 4; // تحريك المؤشر داخل وسم p
+                ta.selectionStart -= 4;
                 ta.selectionEnd = ta.selectionStart;
             } else {
                 wrap(`<p style="text-align:${alignment};">\n${sel}\n</p>`, '');
@@ -415,8 +381,6 @@ class GTMarkdaWin {
             case 'ul': prefixLine('- '); break;
             case 'ol': prefixLine('1. '); break;
             case 'task': prefixLine('- [ ] '); break;
-
-            // *** إضافة: الأوامر المفقودة ***
             case 'table':
                 insertAtCursor('\n| ترويسة 1 | ترويسة 2 | ترويسة 3 |\n| :--- | :---: | ---: |\n| محتوى 1 | محتوى 2 | محتوى 3 |\n| محتوى 4 | محتوى 5 | محتوى 6 |\n');
                 break;
@@ -469,21 +433,42 @@ class GTMarkdaWin {
         if (savedTheme) {
             this.theme = savedTheme;
         }
-        // تطبيق السمة عند التحميل
         document.documentElement.setAttribute('data-theme', this.theme);
-        $('#themeToggle').textContent = this.theme === 'dark' ? '☀️' : '🌙';
+        const themeToggle = $('#themeToggle');
+        if (themeToggle) themeToggle.textContent = this.theme === 'dark' ? '☀️' : '🌙';
+
+        // تحميل الخط المحفوظ
+        const savedFont = localStorage.getItem('gt-markdawin-font');
+        if (savedFont && this.fontSelector) {
+            setTimeout(()=>{ if([...this.fontSelector.options].some(o=>o.value===savedFont)) { this.fontSelector.value=savedFont; this.fontSelector.dispatchEvent(new Event('change')); } }, 800);
+        }
+
+        // استعادة اتجاه النص إن وُجد
+        const savedDir = localStorage.getItem('gt-markdawin-dir');
+        if (savedDir) {
+            document.documentElement.setAttribute('dir', savedDir);
+            document.body.setAttribute('dir', savedDir);
+            if (this.editor) this.editor.setAttribute('dir', savedDir);
+        } else {
+            // تأكد من وضع الافتراضي (وثيقة تستخدم rtl بشكل افتراضي)
+            document.documentElement.setAttribute('dir', document.documentElement.getAttribute('dir') || 'rtl');
+            document.body.setAttribute('dir', document.body.getAttribute('dir') || 'rtl');
+            if (this.editor) this.editor.setAttribute('dir', this.editor.getAttribute('dir') || 'rtl');
+        }
     }
 
-    // *** إضافة: جميع الوظائف المساعدة المفقودة ***
-
-    // --- وظائف النوافذ المنبثقة ---
+    // --- نوافذ ومداخل ---
     showModal(id) {
-        $(`#${id}`).classList.remove('hidden');
-        // التركيز على أول حقل إدخال
-        $(`#${id}`).querySelector('input').focus();
+        const el = $(`#${id}`);
+        if(!el) return;
+        el.classList.remove('hidden');
+        const input = el.querySelector('input');
+        if (input) input.focus();
     }
     hideModal(id) {
-        $(`#${id}`).classList.add('hidden');
+        const el = $(`#${id}`);
+        if(!el) return;
+        el.classList.add('hidden');
     }
     insertLink() {
         const text = $('#linkText').value || 'نص الرابط';
@@ -510,11 +495,12 @@ class GTMarkdaWin {
         }
     }
 
-    // --- وظائف الرأس ---
+    // --- رأس التطبيق ---
     toggleTheme() {
         this.theme = this.theme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', this.theme);
-        $('#themeToggle').textContent = this.theme === 'dark' ? '☀️' : '🌙';
+        const t = $('#themeToggle');
+        if (t) t.textContent = this.theme === 'dark' ? '☀️' : '🌙';
         localStorage.setItem('gt-markdawin-theme', this.theme);
     }
     toggleFullscreen() {
@@ -527,31 +513,41 @@ class GTMarkdaWin {
         }
     }
 
-    // --- وظائف لوحة المحرر/المعاينة ---
+    // تبديل اتجاه النص (RTL <-> LTR)
+    toggleDirection() {
+        const current = document.body.getAttribute('dir') || document.documentElement.getAttribute('dir') || 'rtl';
+        const next = current === 'rtl' ? 'ltr' : 'rtl';
+        document.documentElement.setAttribute('dir', next);
+        document.body.setAttribute('dir', next);
+        if (this.editor) this.editor.setAttribute('dir', next);
+        localStorage.setItem('gt-markdawin-dir', next);
+        notifier.show(`اتجاه النص مُعد إلى ${next.toUpperCase()}`, 'success', 1400);
+    }
+
+    // --- لوحة المحرر/المعاينة ---
     clearEditor() {
         if (confirm('هل أنت متأكد من رغبتك في مسح كل المحتوى؟')) {
             this.editor.value = '';
-            this.editor.dispatchEvent(new Event('input', { bubbles: true })); // إطلاق التحديثات
+            this.editor.dispatchEvent(new Event('input', { bubbles: true }));
             notifier.show('تم مسح المحتوى', 'info');
         }
     }
 
-    // *** إصلاح: وظيفة إظهار/إخفاء المعاينة ***
     togglePreview(btn) {
         const previewPanel = $('.preview-panel');
         this.isPreviewVisible = !this.isPreviewVisible;
         if (this.isPreviewVisible) {
             previewPanel.style.display = 'flex';
-            $('.editor-container').style.gridTemplateColumns = '1fr 1fr';
-            btn.textContent = 'إخفاء المعاينة';
+            $('.editor-container').style.gridTemplateColumns = '2fr 1fr';
+            if (btn) btn.textContent = 'إخفاء المعاينة';
         } else {
             previewPanel.style.display = 'none';
             $('.editor-container').style.gridTemplateColumns = '1fr';
-            btn.textContent = 'إظهار المعاينة';
+            if (btn) btn.textContent = 'إظهار المعاينة';
         }
     }
 
-    // --- وظائف التعامل مع الملفات ---
+    // --- التعامل مع الملفات ---
     importFile() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -562,7 +558,7 @@ class GTMarkdaWin {
                 const reader = new FileReader();
                 reader.onload = (readEvent) => {
                     this.editor.value = readEvent.target.result;
-                    this.editor.dispatchEvent(new Event('input', { bubbles: true })); // إطلاق التحديثات
+                    this.editor.dispatchEvent(new Event('input', { bubbles: true }));
                     notifier.show(`تم تحميل ${file.name}`, 'success');
                 };
                 reader.readAsText(file);
@@ -586,14 +582,13 @@ class GTMarkdaWin {
     }
     exportHTML() {
         const content = this.preview.innerHTML;
-        // غلاف HTML بسيط لتصدير قابل للقراءة
         const fullHtml = `<!DOCTYPE html>
-        <html lang="ar" dir="rtl">
+        <html lang="ar" dir="${document.body.getAttribute('dir') || 'rtl'}">
         <head>
         <meta charset="utf-8">
         <title>مستند مُصدّر</title>
         <style>
-        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; line-height: 1.7; max-width: 800px; margin: 2rem auto; padding: 1rem; direction: rtl; }
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; line-height: 1.7; max-width: 800px; margin: 2rem auto; padding: 1rem; direction: ${document.body.getAttribute('dir') || 'rtl'}; }
         code { background: #f4f4f4; padding: 2px 5px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; }
         pre { background: #f4f4f4; padding: 1rem; border-radius: 8px; overflow-x: auto; }
         pre code { padding: 0; background: none; }
@@ -612,9 +607,64 @@ class GTMarkdaWin {
         this._download('document.html', fullHtml, 'text/html');
     }
 
-    // *** إضافة: وظائف التمرير المتزامن ***
+    // --- تصدير PDF مع تضمين قواعد الخطوط المولدة ديناميكياً ---
+    async exportPDF() {
+        if (typeof html2pdf === 'undefined') {
+            notifier.show('مكتبة التصدير إلى PDF غير متاحة. تأكد من تحميل html2pdf.bundle.min.js', 'error', 3000);
+            return;
+        }
 
-    // حساب النسبة المئوية للتمرير
+        const contentHtml = this.preview.innerHTML || '<div>لا توجد محتويات للمعاينة</div>';
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '800px';
+        container.style.padding = '20px';
+        container.style.background = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#111' : '#fff';
+        container.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#000';
+        container.id = 'gt-export-pdf-temp';
+        container.innerHTML = contentHtml;
+
+        // انسخ قواعد الخطوط المو��دة (إن وُجدت) للحفاظ على الخط في PDF
+        const fontStyle = document.getElementById('gt-dynamic-fonts');
+        if (fontStyle) {
+            const clonedStyle = document.createElement('style');
+            clonedStyle.id = 'gt-export-fonts';
+            clonedStyle.textContent = fontStyle.textContent;
+            container.prepend(clonedStyle);
+        }
+
+        const inlineDir = document.body.getAttribute('dir') || 'rtl';
+        const dirStyle = document.createElement('style');
+        dirStyle.textContent = `html, body, #gt-export-pdf-temp { direction: ${inlineDir}; }`;
+        container.prepend(dirStyle);
+
+        document.body.appendChild(container);
+
+        const opt = {
+            margin:       12,
+            filename:     'document.pdf',
+            image:        { type: 'jpeg', quality: 0.92 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        try {
+            await html2pdf().set(opt).from(container).save();
+            notifier.show('تم تصدير PDF بنجاح', 'success', 1800);
+        } catch (err) {
+            console.error('PDF export failed', err);
+            notifier.show('فشل في تصدير PDF. افتح وحدة التحكم للمزيد من المعلومات.', 'error', 2600);
+        } finally {
+            const tmp = document.getElementById('gt-export-pdf-temp');
+            if (tmp) tmp.remove();
+            const tmpFonts = document.getElementById('gt-export-fonts');
+            if (tmpFonts) tmpFonts.remove();
+        }
+    }
+
+    // التمرير المتزامن
     _getScrollPercent(el) {
         const h = el.scrollHeight - el.clientHeight;
         return (h > 0) ? (el.scrollTop / h) : 0;
@@ -622,10 +672,10 @@ class GTMarkdaWin {
 
     syncScrollEditor() {
         if (this.isPreviewSyncing) {
-            this.isPreviewSyncing = false; // فتح القفل
+            this.isPreviewSyncing = false;
             return;
         }
-        this.isEditorSyncing = true; // قفل المحرر
+        this.isEditorSyncing = true;
         const percent = this._getScrollPercent(this.editor);
         const targetScroll = (this.preview.scrollHeight - this.preview.clientHeight) * percent;
         this.preview.scrollTop = targetScroll;
@@ -633,10 +683,10 @@ class GTMarkdaWin {
 
     syncScrollPreview() {
         if (this.isEditorSyncing) {
-            this.isEditorSyncing = false; // فتح القفل
+            this.isEditorSyncing = false;
             return;
         }
-        this.isPreviewSyncing = true; // قفل المعاينة
+        this.isPreviewSyncing = true;
         const percent = this._getScrollPercent(this.preview);
         const targetScroll = (this.editor.scrollHeight - this.editor.clientHeight) * percent;
         this.editor.scrollTop = targetScroll;
