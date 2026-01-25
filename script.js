@@ -1,6 +1,4 @@
-/* script.js — الإصدار النهائي مع إصلاح تصدير PDF وإدارة Emoji */
-
-/* DOM helpers */
+/* script.js — الإصدار النهائي مع إصلاح PDF كامل */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
@@ -47,7 +45,7 @@ class FontManager {
       this.importBtn.addEventListener('click', ()=>this.pickDirectory());
     }
     else if(this.importBtn) {
-      this.importBtn.addEventListener('click', ()=>notifier.show('متصفحك لا يدعم File System Access. استخدم fonts.json','info',3500));
+      this.importBtn.addEventListener('click', ()=>notifier.show('استخدم fonts.json أو ضع الملفات في مجلد fonts/','info'));
     }
     
     this.scanFonts(); 
@@ -91,8 +89,7 @@ class FontManager {
       if(fonts.length) this.applyFonts(fonts); 
       else notifier.show('لم يتم العثور على خطوط','info');
     }catch(e){ 
-      console.warn(e); 
-      notifier.show('تم إلغاء الوصول للمجلد','error',2000); 
+      notifier.show('تم إلغاء الوصول للمجلد','error'); 
     } 
   }
   
@@ -108,14 +105,13 @@ class FontManager {
         } 
       } 
     }catch(e){ 
-      console.warn("fonts.json not available", e); 
+      console.warn("fonts.json غير متاح"); 
     } 
     
     const common = [
       'Samim','Dubai-Regular','Dubai-Medium','Dubai-Light',
-      'Dubai-Bold','Consolas-Regular','UthmanicHafs1 Ver13',
-      'ArbFONTS-Amiri-Quran','amiri-quran','Ubuntu Arabic Regular',
-      'Ubuntu Arabic Bold','(A) Arslan Wessam A'
+      'Dubai-Bold','UthmanicHafs1 Ver13','ArbFONTS-Amiri-Quran',
+      'amiri-quran','Ubuntu Arabic Regular','Ubuntu Arabic Bold'
     ]; 
     
     const candidates=[];
@@ -166,7 +162,7 @@ class FontManager {
       added++; 
     }); 
     
-    if(added) notifier.show(`تم إضافة ${added} خطًا جديدًا`, 'success', 2600); 
+    if(added) notifier.show(`تم إضافة ${added} خطًا جديدًا`, 'success'); 
     
     if(this.selectEl && ![...this.selectEl.options].some(o=>o.value==='__system__')){ 
       const o=document.createElement('option'); 
@@ -258,12 +254,14 @@ class EmojiManager {
     
     const grid = document.createElement('div'); 
     grid.className = 'emoji-grid';
-    grid.style.display='grid'; 
-    grid.style.gridTemplateColumns='repeat(auto-fill, minmax(40px, 1fr))'; 
-    grid.style.gap='6px';
-    grid.style.padding='12px';
-    grid.style.maxHeight='300px';
-    grid.style.overflowY='auto';
+    grid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      gap: 6px;
+      padding: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+    `;
     
     emojisList.forEach(emoji=>{
       const btn = document.createElement('button'); 
@@ -275,12 +273,12 @@ class EmojiManager {
         border: none;
         background: transparent;
         cursor: pointer;
-        font-size: 1.5rem;
-        padding: 6px;
-        border-radius: 6px;
+        font-size: 1.4rem;
+        padding: 5px;
+        border-radius: 5px;
         transition: all 0.2s;
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -743,7 +741,7 @@ class GTMarkdaWin {
     this._download('document.html', fullHtml, 'text/html'); 
   }
 
-  /* exportPDF محسن - يعمل في جميع الحالات */
+  /* exportPDF - حل نهائي يعمل مع الخطوط العربية */
   async exportPDF() {
     // تحديث المعاينة أولاً
     this._updatePreview();
@@ -754,355 +752,294 @@ class GTMarkdaWin {
       return; 
     }
 
-    notifier.show('جارٍ تحضير PDF...', 'info', 1500);
+    notifier.show('جارٍ تحضير PDF...', 'info', 2000);
 
-    // محاولة استخدام html2pdf أولاً
-    if (typeof html2pdf !== 'undefined') {
-      try {
-        // إنشاء نسخة من عنصر المعاينة مع أنماط محسنة
-        const element = this.preview;
+    try {
+      // 1. إنشاء نافذة طباعة مخصصة للعربية
+      const printDate = new Date().toLocaleDateString('ar-SA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      });
+      
+      const printTime = new Date().toLocaleTimeString('ar-SA');
+      
+      // الحصول على الخط الحالي
+      const currentFont = document.documentElement.style.getPropertyValue('--app-font') || 
+                         'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial';
+      
+      const currentDir = document.body.getAttribute('dir') || 'rtl';
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      
+      // محتوى HTML كامل مع أنماط PDF محسنة
+      const printContent = `
+<!DOCTYPE html>
+<html dir="${currentDir}" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GT-MARKDAWIN - ${printDate}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
         
-        // إعدادات html2pdf
-        const opt = {
-          margin: [15, 15, 15, 15],
-          filename: `GT-MARKDAWIN-${new Date().toISOString().slice(0,10)}.pdf`,
-          image: { 
-            type: 'jpeg', 
-            quality: 0.95 
-          },
-          html2canvas: { 
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: this.theme === 'dark' ? '#000000' : '#ffffff',
-            windowWidth: 794, // A4 width in pixels at 96 DPI
-            onclone: function(clonedDoc, element) {
-              // تحسين النسخة المستنسخة للطباعة
-              const body = clonedDoc.body;
-              body.style.cssText = `
-                direction: ${document.body.getAttribute('dir') || 'rtl'};
-                font-family: ${document.documentElement.style.getPropertyValue('--app-font') || 'Arial, sans-serif'};
-                padding: 20px;
-                max-width: 100%;
-                overflow-wrap: break-word;
-                background: ${clonedDoc.documentElement.getAttribute('data-theme') === 'dark' ? '#000' : '#fff'};
-                color: ${clonedDoc.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#000'};
-              `;
-              
-              // إضافة أنماط إضافية للعناصر
-              const style = document.createElement('style');
-              style.textContent = `
-                * { 
-                  max-width: 100% !important;
-                  box-sizing: border-box;
-                }
-                table { 
-                  border-collapse: collapse; 
-                  width: 100% !important;
-                  margin: 10px 0;
-                }
-                th, td { 
-                  border: 1px solid #ddd; 
-                  padding: 8px;
-                  text-align: right;
-                }
-                img { 
-                  max-width: 100% !important; 
-                  height: auto !important;
-                }
-                pre, code { 
-                  white-space: pre-wrap !important;
-                  word-break: break-word !important;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                  page-break-after: avoid;
-                }
-                p {
-                  margin: 8px 0;
-                  line-height: 1.6;
-                }
-              `;
-              clonedDoc.head.appendChild(style);
-            }
-          },
-          jsPDF: { 
-            unit: 'mm', 
-            format: 'a4', 
-            orientation: 'portrait',
-            compress: true,
-            hotfixes: ['px_scaling']
-          }
-        };
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        // التصدير
-        await html2pdf().set(opt).from(element).save();
-        notifier.show('✅ تم تصدير PDF بنجاح', 'success', 2000);
-        return;
+        body {
+            font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', ${currentFont}, serif;
+            direction: ${currentDir};
+            line-height: 1.8;
+            color: #000;
+            background: #fff;
+            padding: 25mm;
+            font-size: 14pt;
+        }
         
-      } catch (error) {
-        console.warn('html2pdf فشل، استخدام الطباعة البديلة:', error);
-      }
-    }
-    
-    // البديل: استخدام نافذة الطباعة
-    this.exportViaPrint();
-  }
-
-  /* دالة مساعدة للطباعة كـ PDF */
-  exportViaPrint() {
-    // إنشاء نافذة طباعة
-    const printWindow = window.open('', '_blank');
-    
-    // بناء محتوى الطباعة
-    const printDate = new Date().toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
-    const printContent = `
-      <!DOCTYPE html>
-      <html dir="${document.body.getAttribute('dir') || 'rtl'}">
-      <head>
-        <meta charset="utf-8">
-        <title>GT-MARKDAWIN - ${printDate}</title>
-        <style>
-          /* أنماط الطباعة */
-          @media print {
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #38a3ff;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28pt;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 14pt;
+            margin-bottom: 15px;
+        }
+        
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            color: #666;
+            font-size: 11pt;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .content {
+            margin-top: 20px;
+        }
+        
+        /* أنماط الماركداون */
+        h1, h2, h3, h4, h5, h6 {
+            color: #2c3e50;
+            margin: 25px 0 15px 0;
+            font-weight: 700;
+            page-break-after: avoid;
+        }
+        
+        h1 { font-size: 24pt; }
+        h2 { font-size: 20pt; }
+        h3 { font-size: 18pt; }
+        h4 { font-size: 16pt; }
+        h5 { font-size: 14pt; }
+        h6 { font-size: 13pt; }
+        
+        p {
+            margin: 15px 0;
+            text-align: justify;
+            line-height: 1.9;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-right: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+            line-height: 1.8;
+        }
+        
+        blockquote {
+            border-right: 4px solid #38a3ff;
+            padding: 15px 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-style: italic;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+            background: #f1f3f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12pt;
+        }
+        
+        pre {
+            font-family: 'Courier New', monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 12pt;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 12pt;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: ${currentDir === 'rtl' ? 'right' : 'left'};
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 15px auto;
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        hr {
+            border: none;
+            border-top: 2px solid #eee;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 10pt;
+        }
+        
+        /* أنماط الطباعة */
+        @media print {
             @page {
-              size: A4;
-              margin: 20mm;
+                size: A4;
+                margin: 25mm;
+                @top-right {
+                    content: "GT-MARKDAWIN";
+                    font-size: 10pt;
+                    color: #7f8c8d;
+                }
+                @bottom-center {
+                    content: "الصفحة " counter(page) " من " counter(pages);
+                    font-size: 10pt;
+                    color: #7f8c8d;
+                }
             }
             
             body {
-              font-family: ${document.documentElement.style.getPropertyValue('--app-font') || 'Arial, sans-serif'};
-              direction: ${document.body.getAttribute('dir') || 'rtl'};
-              line-height: 1.6;
-              color: #000;
-              background: #fff;
-              margin: 0;
-              padding: 0;
-              font-size: 12pt;
-            }
-            
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-              padding-bottom: 15px;
-              border-bottom: 2px solid #38a3ff;
-            }
-            
-            .header h1 {
-              font-size: 24pt;
-              margin: 0 0 10px 0;
-              color: #38a3ff;
-            }
-            
-            .header .date {
-              color: #666;
-              font-size: 11pt;
-            }
-            
-            h1 { font-size: 20pt; margin: 25px 0 15px 0; }
-            h2 { font-size: 18pt; margin: 20px 0 12px 0; }
-            h3 { font-size: 16pt; margin: 18px 0 10px 0; }
-            h4 { font-size: 14pt; margin: 16px 0 8px 0; }
-            h5 { font-size: 12pt; margin: 14px 0 6px 0; }
-            h6 { font-size: 11pt; margin: 12px 0 4px 0; }
-            
-            p {
-              margin: 10px 0;
-              text-align: justify;
-              line-height: 1.8;
-            }
-            
-            ul, ol {
-              margin: 10px 0;
-              padding-right: 25px;
-            }
-            
-            li {
-              margin: 6px 0;
-            }
-            
-            blockquote {
-              border-right: 3px solid #38a3ff;
-              padding: 10px 15px;
-              margin: 15px 0;
-              background: #f8f9fa;
-              border-radius: 5px;
-            }
-            
-            code {
-              font-family: 'Courier New', monospace;
-              background: #f1f3f4;
-              padding: 2px 6px;
-              border-radius: 3px;
-              font-size: 11pt;
-            }
-            
-            pre {
-              font-family: 'Courier New', monospace;
-              background: #f8f9fa;
-              padding: 12px;
-              border-radius: 5px;
-              overflow-x: auto;
-              white-space: pre-wrap;
-              margin: 15px 0;
-              border: 1px solid #e1e4e8;
-            }
-            
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 15px 0;
-              font-size: 11pt;
-            }
-            
-            th, td {
-              border: 1px solid #ddd;
-              padding: 8px 12px;
-              text-align: right;
-            }
-            
-            th {
-              background: #f8f9fa;
-              font-weight: bold;
-              color: #333;
-            }
-            
-            img {
-              max-width: 100%;
-              height: auto;
-              display: block;
-              margin: 10px auto;
-            }
-            
-            hr {
-              border: none;
-              border-top: 1px solid #ddd;
-              margin: 20px 0;
-            }
-            
-            a {
-              color: #38a3ff;
-              text-decoration: none;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             
             .page-break {
-              page-break-before: always;
+                page-break-before: always;
             }
             
-            .no-print {
-              display: none;
+            h1, h2, h3, h4, h5, h6 {
+                page-break-after: avoid;
             }
             
-            .footer {
-              margin-top: 40px;
-              padding-top: 15px;
-              border-top: 1px solid #ddd;
-              text-align: center;
-              font-size: 10pt;
-              color: #666;
+            p, ul, ol, blockquote, pre, table, img {
+                page-break-inside: avoid;
             }
-          }
-          
-          /* أنماط الشاشة */
-          @media screen {
-            body {
-              padding: 30px;
-              max-width: 800px;
-              margin: 0 auto;
-              background: #f5f5f5;
-              font-family: ${document.documentElement.style.getPropertyValue('--app-font') || 'Arial, sans-serif'};
-              direction: ${document.body.getAttribute('dir') || 'rtl'};
-            }
-            
-            .print-instructions {
-              background: #fff;
-              padding: 20px;
-              border-radius: 10px;
-              margin-bottom: 30px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-              border: 2px solid #38a3ff;
-            }
-            
-            .print-button {
-              display: inline-block;
-              background: #38a3ff;
-              color: white;
-              padding: 12px 24px;
-              border-radius: 5px;
-              text-decoration: none;
-              margin: 10px 5px;
-              cursor: pointer;
-              border: none;
-              font-size: 14px;
-            }
-            
-            .print-button:hover {
-              background: #2a8ae6;
-            }
-            
-            .content {
-              background: white;
-              padding: 30px;
-              border-radius: 10px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="print-instructions">
-          <h2>تصدير إلى PDF</h2>
-          <p>لحفظ هذا المستند كملف PDF:</p>
-          <ol>
-            <li>انقر على زر "طباعة" أدناه</li>
-            <li>في نافذة الطباعة، اختر "حفظ كـ PDF" كطابعة</li>
-            <li>اضبط الإعدادات كما تريد (A4 هو الحجم الافتراضي)</li>
-            <li>انقر على "حفظ"</li>
-          </ol>
-          <div>
-            <button onclick="window.print()" class="print-button">🖨️ طباعة / حفظ كـ PDF</button>
-            <button onclick="window.close()" class="print-button" style="background: #666;">✖️ إغلاق</button>
-          </div>
-        </div>
-        
-        <div class="content">
-          <div class="header no-print">
-            <h1>GT-MARKDAWIN</h1>
-            <p class="date">${printDate}</p>
-          </div>
-          
-          <div id="document-content">
-            ${this.preview.innerHTML}
-          </div>
-          
-          <div class="footer">
-            <p>تم إنشاء هذا المستند بواسطة GT-MARKDAWIN - ${printDate}</p>
-          </div>
-        </div>
-        
-        <script>
-          // طباعة تلقائية بعد تحميل الصفحة
-          window.addEventListener('load', function() {
-            setTimeout(function() {
-              // يمكن إلغاء التعليق عن السطر التالي للطباعة التلقائية
-              // window.print();
-            }, 500);
-          });
-        </script>
-      </body>
-      </html>
-    `;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 GT-MARKDAWIN</h1>
+        <div class="subtitle">محرر ماركداون عربي عصري</div>
+    </div>
     
-    // كتابة المحتوى إلى النافذة الجديدة
-    printWindow.document.open();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+    <div class="meta-info">
+        <div class="date">
+            <strong>التاريخ:</strong> ${printDate}
+        </div>
+        <div class="time">
+            <strong>الوقت:</strong> ${printTime}
+        </div>
+        <div class="direction">
+            <strong>الاتجاه:</strong> ${currentDir === 'rtl' ? 'من اليمين لليسار' : 'من اليسار لليمين'}
+        </div>
+    </div>
     
-    notifier.show('✅ فتح نافذة الطباعة. اختر "حفظ كـ PDF"', 'success', 3000);
+    <div class="content">
+        ${this.preview.innerHTML}
+    </div>
+    
+    <div class="footer">
+        <p>تم إنشاء هذا المستند بواسطة GT-MARKDAWIN</p>
+        <p>${printDate} - ${printTime}</p>
+    </div>
+</body>
+</html>`;
+      
+      // 2. إنشاء نافذة طباعة
+      const printWindow = window.open('', '_blank');
+      
+      // 3. كتابة المحتوى إلى النافذة
+      printWindow.document.open();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // 4. انتظار تحميل الخطوط والصور
+      printWindow.onload = () => {
+        setTimeout(() => {
+          // 5. طباعة النافذة
+          printWindow.print();
+          
+          // 6. إغلاق النافذة بعد الطباعة
+          setTimeout(() => {
+            printWindow.close();
+          }, 1000);
+        }, 500);
+      };
+      
+      notifier.show('✅ تم فتح نافذة الطباعة. اختر "حفظ كـ PDF"', 'success', 3000);
+      
+    } catch (error) {
+      console.error('فشل تصدير PDF:', error);
+      notifier.show('❌ فشل في تصدير PDF. حاول استخدام الطباعة من المتصفح مباشرة.', 'error', 4000);
+    }
   }
 
   _getScrollPercent(el){ 
