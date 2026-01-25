@@ -7,10 +7,21 @@
   <meta name="description" content="محرر مارك داون عصري يدعم العربية" />
   <meta name="theme-color" content="#0b0f13" />
   
-  <!-- خطوط Google Fonts للعربية -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+  <!-- خطوط محلية بدلاً من Google Fonts -->
+  <style>
+    @font-face {
+      font-family: 'Amiri';
+      src: url('fonts/Amiri-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Amiri';
+      src: url('fonts/Amiri-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
   
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
@@ -20,15 +31,16 @@
   <div class="app-container">
     <header class="app-header">
       <div class="left-head">
-        <h1 class="app-title">📝 GT-MARKDAWIN</h1>
-        <div class="subtitle">محرر ماركداون عربي عصري</div>
+        <img src="gt-markdawin-icon.png" alt="GT-MARKDAWIN Logo" class="app-logo">
+        <div class="app-title-container">
+          <h1 class="app-title">GT-MARKDAWIN</h1>
+          <div class="subtitle">محرر ماركداون عربي عصري</div>
+        </div>
       </div>
       <div class="header-right">
         <select id="fontSelector" class="font-selector" title="اختيار الخط">
           <option value="__system__">افتراضي النظام</option>
           <option value="Amiri">Amiri (خط عربي)</option>
-          <option value="Scheherazade">Scheherazade (خط عربي)</option>
-          <option value="Noto Naskh Arabic">Noto Naskh Arabic (خط عربي)</option>
         </select>
         <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
         <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرية">😊</button>
@@ -79,10 +91,12 @@
         <div class="panel-header">
           <h3>✍️ الكتابة</h3>
           <div class="editor-actions">
+            <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
+            <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
             <button id="syncToggle" class="btn-secondary btn-sync" title="تفعيل/إلغاء مزامنة التحريك">🔗 مزامنة</button>
             <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">🔍 تكبير المحرر</button>
             <button id="clearBtn" class="btn-secondary">🗑️ مسح</button>
-            <button id="importBtn" class="btn-secondary">📂 استيراد</button>
+            <button id="importBtn" class="btn-secondary">📥 استيراد</button>
           </div>
         </div>
         <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN
@@ -130,8 +144,7 @@ function hello() {
         <span id="lineCount">السطور: 1</span>
       </div>
       <div class="status-actions">
-        <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
-        <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
+        <!-- تم إزالة زر فتح ملف من هنا -->
       </div>
     </footer>
 
