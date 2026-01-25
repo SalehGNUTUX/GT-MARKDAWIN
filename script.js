@@ -1026,7 +1026,7 @@ loadLocalLogo() {
 <body>
     <div class="header">
         <h1>📝 GT-MARKDAWIN</h1>
-        <div class="subtitle"<محرر ماركداون عربي عصري</div>
+        <div class="subtitle">محرر ماركداون عربي عصري</div>
     </div>
     
     <div class="meta-info">
