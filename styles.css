@@ -1,4 +1,4 @@
-/* styles.css — الإصدار النهائي مع تنسيق أنيق */
+/* styles.css — مع مساحة أكبر للمحرر والمعاينة */
 :root {
   --primary: #0b0f13;
   --accent: #38a3ff;
@@ -55,8 +55,8 @@ body {
 
 .app-container {
   max-width: 1400px;
-  margin: 8px auto;
-  height: calc(100vh - 16px);
+  margin: 6px auto;
+  height: calc(100vh - 12px);
   display: flex;
   flex-direction: column;
   border-radius: 12px;
@@ -65,27 +65,27 @@ body {
   background: var(--surface);
 }
 
-/* Header */
+/* Header - مخفض الارتفاع */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 8px 16px;
   background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 80%, #000));
   color: var(--text);
   flex-shrink: 0;
-  min-height: 70px;
+  min-height: 60px; /* مخفض من 70px */
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .left-head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px; /* مخفض من 4px */
 }
 
 .app-title {
-  font-size: 1.4rem;
+  font-size: 1.3rem; /* مخفض قليلاً */
   font-weight: 800;
   background: linear-gradient(90deg, #38a3ff, #66aaff);
   -webkit-background-clip: text;
@@ -94,30 +94,30 @@ body {
 }
 
 .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.8rem; /* مخفض من 0.85rem */
   color: var(--muted);
   opacity: 0.9;
 }
 
 .header-right {
   display: flex;
-  gap: 8px;
+  gap: 6px; /* مخفض من 8px */
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-/* Font Selector */
+/* Font Selector - مخفض الحجم */
 .font-selector {
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.05);
   color: var(--text);
-  width: 160px;
+  width: 150px; /* مخفض من 160px */
   cursor: pointer;
   -webkit-appearance: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
   transition: all 0.2s;
 }
 
@@ -127,20 +127,15 @@ body {
   box-shadow: 0 0 0 2px rgba(56, 163, 255, 0.2);
 }
 
-.font-selector option {
-  color: var(--text);
-  background: var(--surface);
-}
-
-/* Toolbar - أنيق ومضغوط */
+/* Toolbar - مخفض الارتفاع أكثر */
 .toolbar {
   display: flex;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 6px; /* مخفض من 8px */
+  padding: 6px 12px; /* مخفض من 10px 16px */
   background: rgba(0,0,0,0.15);
   border-bottom: 1px solid rgba(255,255,255,0.03);
   flex-shrink: 0;
-  min-height: 52px;
+  min-height: 46px; /* مخفض من 52px */
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
@@ -148,10 +143,10 @@ body {
 
 .toolbar-group {
   display: flex;
-  gap: 6px;
+  gap: 4px; /* مخفض من 6px */
   align-items: center;
   flex-wrap: wrap;
-  padding: 2px 8px;
+  padding: 2px 6px; /* مخفض من 2px 8px */
   border-right: 1px solid rgba(255,255,255,0.05);
 }
 
@@ -162,15 +157,15 @@ body {
 .toolbar-btn {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 5px 8px; /* مخفض من 6px 10px */
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
   color: var(--text);
   transition: all 0.2s ease;
-  font-size: 0.9rem;
-  min-height: 36px;
-  min-width: 36px;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
+  min-height: 32px; /* مخفض من 36px */
+  min-width: 32px; /* مخفض من 36px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,27 +174,24 @@ body {
 
 .toolbar-btn:hover {
   background: rgba(255,255,255,0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.toolbar-btn:active {
-  transform: translateY(0);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
 }
 
 .toolbar-btn-small {
-  min-width: 32px;
-  padding: 5px 8px;
-  font-size: 0.85rem;
+  min-width: 30px; /* مخفض من 32px */
+  padding: 4px 6px; /* مخفض من 5px 8px */
+  font-size: 0.8rem; /* مخفض من 0.85rem */
 }
 
-/* Layout */
+/* Layout - مساحة أكبر */
 .editor-container {
   display: grid;
   flex: 1;
   min-height: 0;
   overflow: hidden;
   transition: grid-template-columns 0.3s ease;
+  height: calc(100vh - 170px); /* مساحة أكبر */
 }
 
 .editor-container.split {
@@ -231,39 +223,41 @@ body {
   min-height: 0;
   overflow: hidden;
   position: relative;
+  height: 100%; /* يأخذ المساحة الكاملة */
 }
 
+/* Panel Header - مخفض الارتفاع */
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 12px; /* مخفض من 12px 16px */
   border-bottom: 1px solid rgba(255,255,255,0.05);
   background: rgba(0,0,0,0.1);
   flex-shrink: 0;
-  min-height: 56px;
+  min-height: 48px; /* مخفض من 56px */
 }
 
 .panel-header h3 {
-  font-size: 1rem;
+  font-size: 0.95rem; /* مخفض من 1rem */
   color: var(--accent);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px; /* مخفض من 8px */
 }
 
 .editor-actions, .preview-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px; /* مخفض من 8px */
   align-items: center;
   flex-wrap: wrap;
 }
 
-/* Textarea */
+/* Textarea - مساحة أكبر */
 #editor {
   flex: 1;
-  padding: 20px;
+  padding: 16px; /* مخفض من 20px لكن مساحة أكبر */
   border: 0;
   resize: none;
   font-family: var(--app-font), 'Cascadia Code', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
@@ -275,8 +269,9 @@ body {
   tab-size: 4;
   overflow: auto;
   width: 100%;
-  min-height: 100px;
+  min-height: 200px; /* زيادة من 100px */
   display: block;
+  height: calc(100% - 48px); /* يأخذ المساحة المتبقية بعد الهيدر */
 }
 
 #editor:focus {
@@ -288,23 +283,25 @@ body {
   opacity: 0.7;
 }
 
-/* Preview Content */
+/* Preview Content - مساحة أكبر */
 .preview-content {
   flex: 1;
-  padding: 20px;
+  padding: 16px; /* مخفض من 20px لكن مساحة أكبر */
   overflow: auto;
   background: rgba(0,0,0,0.05);
-  min-height: 100px;
+  min-height: 200px; /* زيادة من 100px */
   font-size: 1.05rem;
   line-height: 1.8;
   display: block;
   font-family: var(--app-font), 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif;
+  height: calc(100% - 48px); /* يأخذ المساحة المتبقية بعد الهيدر */
 }
 
 .preview-content * {
   max-width: 100%;
 }
 
+/* بقية أنماط المحتوى تبقى كما هي */
 .preview-content img {
   max-width: 100%;
   height: auto;
@@ -423,21 +420,21 @@ body {
   font-weight: 500;
 }
 
-/* Buttons */
+/* Buttons - مخفضة الحجم */
 .btn-success {
   background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 80%, #000));
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 7px 14px; /* مخفض من 8px 16px */
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.9rem;
-  min-height: 36px;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
+  min-height: 34px; /* مخفض من 36px */
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px; /* مخفض من 6px */
 }
 
 .btn-success:hover {
@@ -449,15 +446,15 @@ body {
   background: rgba(255,255,255,0.07);
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.1);
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 7px 12px; /* مخفض من 8px 14px */
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.9rem;
-  min-height: 36px;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
+  min-height: 34px; /* مخفض من 36px */
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px; /* مخفض من 6px */
 }
 
 .btn-secondary:hover {
@@ -469,17 +466,17 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
   color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
+  padding: 7px 14px; /* مخفض من 8px 16px */
+  border-radius: 6px;
   font-weight: 700;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
-  font-size: 0.9rem;
-  min-height: 36px;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
+  min-height: 34px; /* مخفض من 36px */
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px; /* مخفض من 6px */
 }
 
 .btn-primary:hover {
@@ -490,17 +487,17 @@ body {
 .btn-icon {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
-  padding: 8px;
-  border-radius: 8px;
+  padding: 7px; /* مخفض من 8px */
+  border-radius: 6px;
   cursor: pointer;
   color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 36px; /* مخفض من 40px */
+  min-height: 36px; /* مخفض من 40px */
   transition: all 0.2s;
-  font-size: 1.1rem;
+  font-size: 1rem; /* مخفض من 1.1rem */
 }
 
 .btn-icon:hover {
@@ -512,11 +509,11 @@ body {
 /* Notification - مركزية علوية */
 .gt-notification {
   position: fixed;
-  top: 20px;
+  top: 15px; /* مخفض من 20px */
   left: 50%;
   transform: translateX(-50%) translateY(-20px);
-  padding: 14px 24px;
-  border-radius: 10px;
+  padding: 12px 20px; /* مخفض من 14px 24px */
+  border-radius: 8px;
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
@@ -524,13 +521,13 @@ body {
   z-index: 10000;
   opacity: 0;
   transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  max-width: 400px;
-  font-size: 0.95rem;
+  max-width: 380px; /* مخفض من 400px */
+  font-size: 0.9rem; /* مخفض من 0.95rem */
   text-align: center;
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px; /* مخفض من 10px */
 }
 
 .gt-notification.visible {
@@ -539,60 +536,61 @@ body {
 }
 
 .gt-notification[data-type="success"] {
-  border-left: 4px solid var(--success);
+  border-left: 3px solid var(--success);
   background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), var(--surface));
 }
 
 .gt-notification[data-type="error"] {
-  border-left: 4px solid var(--error);
+  border-left: 3px solid var(--error);
   background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), var(--surface));
 }
 
 .gt-notification[data-type="info"] {
-  border-left: 4px solid var(--accent);
+  border-left: 3px solid var(--accent);
   background: linear-gradient(135deg, rgba(56, 163, 255, 0.1), var(--surface));
 }
 
 .gt-notification[data-type="warning"] {
-  border-left: 4px solid var(--warning);
+  border-left: 3px solid var(--warning);
   background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), var(--surface));
 }
 
-/* Status Bar */
+/* Status Bar - مخفض الارتفاع */
 .status-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 8px 16px; /* مخفض من 12px 20px */
   background: rgba(0,0,0,0.15);
   border-top: 1px solid rgba(255,255,255,0.03);
   flex-shrink: 0;
-  min-height: 60px;
+  min-height: 52px; /* مخفض من 60px */
 }
 
 .status-info {
   display: flex;
-  gap: 20px;
+  gap: 16px; /* مخفض من 20px */
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
   flex-wrap: wrap;
 }
 
 .status-info span {
   background: rgba(255,255,255,0.03);
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 5px 10px; /* مخفض من 6px 12px */
+  border-radius: 5px;
   border: 1px solid rgba(255,255,255,0.05);
 }
 
 .site-footer {
-  padding: 10px 20px;
+  padding: 8px 16px; /* مخفض من 10px 20px */
   text-align: center;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem; /* مخفض من 0.85rem */
   flex-shrink: 0;
   background: rgba(0,0,0,0.2);
   border-top: 1px solid rgba(255,255,255,0.03);
+  min-height: 40px; /* مخفض */
 }
 
 .site-footer a {
@@ -606,25 +604,7 @@ body {
   opacity: 0.9;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.25);
-}
+/* بقية الأنماط تبقى كما هي مع التخفيضات */
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -639,66 +619,66 @@ body {
   }
   
   .toolbar {
-    padding: 8px 12px;
-    gap: 6px;
+    padding: 5px 10px;
+    gap: 4px;
     justify-content: flex-start;
     overflow-x: auto;
-    min-height: 48px;
+    min-height: 42px;
   }
   
   .toolbar-group {
-    padding: 2px 6px;
+    padding: 2px 4px;
   }
   
   .header-right {
-    gap: 6px;
+    gap: 4px;
   }
   
   .font-selector {
-    width: 140px;
+    width: 130px;
   }
   
   .app-header {
-    padding: 10px 16px;
-    min-height: 65px;
+    padding: 6px 12px;
+    min-height: 55px;
     flex-wrap: wrap;
   }
   
   .app-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 }
 
 @media (max-width: 600px) {
   .status-bar {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     align-items: stretch;
-    padding: 12px;
+    padding: 8px 12px;
   }
   
   .status-info {
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
   }
   
   .status-actions {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
   }
   
   .panel-header {
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 10px;
   }
   
   .editor-actions, .preview-actions {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    gap: 5px;
   }
   
   .gt-notification {
@@ -711,19 +691,25 @@ body {
   .gt-notification.visible {
     transform: translateX(0) translateY(0);
   }
+  
+  /* زيادة حجم المحرر في الشاشات الصغيرة */
+  #editor, .preview-content {
+    height: calc(100% - 48px);
+    padding: 12px;
+  }
 }
 
 /* Emoji Panel */
 .emoji-panel {
   position: fixed;
   z-index: 9998;
-  min-width: 280px;
-  max-width: 400px;
-  max-height: 300px;
+  min-width: 260px;
+  max-width: 380px;
+  max-height: 280px;
   overflow: hidden;
   background: var(--surface);
   color: var(--text);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 15px 40px rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.15);
   backdrop-filter: blur(20px);
@@ -756,9 +742,9 @@ body {
 .modal-content {
   background: var(--surface);
   color: var(--text);
-  padding: 24px;
-  border-radius: 16px;
-  min-width: 320px;
+  padding: 20px; /* مخفض من 24px */
+  border-radius: 14px;
+  min-width: 300px; /* مخفض من 320px */
   max-width: 90%;
   box-shadow: 0 25px 70px rgba(0,0,0,0.8);
   border: 1px solid rgba(255,255,255,0.1);
@@ -771,28 +757,28 @@ body {
 }
 
 .modal-content h3 {
-  margin-bottom: 20px;
+  margin-bottom: 16px; /* مخفض من 20px */
   color: var(--accent);
-  font-size: 1.3rem;
+  font-size: 1.2rem; /* مخفض من 1.3rem */
   font-weight: 700;
 }
 
 .modal-content label {
   display: block;
-  margin: 14px 0 6px;
+  margin: 12px 0 5px; /* مخفض من 14px 0 6px */
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* مخفض من 0.9rem */
   font-weight: 500;
 }
 
 .modal-content input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px; /* مخفض من 12px 14px */
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(0,0,0,0.2);
   color: var(--text);
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem; /* مخفض من 1rem */
   transition: all 0.2s;
 }
 
@@ -813,8 +799,8 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 5px;
-  height: 5px;
+  width: 4px; /* مخفض من 5px */
+  height: 4px; /* مخفض من 5px */
   background: rgba(255,255,255,0.3);
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -824,11 +810,31 @@ body {
 .btn-sync.syncing::after {
   animation: none;
   background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+  box-shadow: 0 0 8px var(--accent); /* مخفض من 10px */
 }
 
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
 }
