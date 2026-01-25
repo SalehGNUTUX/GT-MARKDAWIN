@@ -32,37 +32,43 @@
     </header>
 
     <nav class="toolbar" aria-label="شريط أدوات الماركداون">
+      <!-- المجموعة الأولى: النصوص الأساسية -->
       <div class="toolbar-group">
-        <button data-cmd="bold" class="toolbar-btn" title="عريض (Ctrl+B)"><strong>B</strong></button>
-        <button data-cmd="italic" class="toolbar-btn" title="مائل (Ctrl+I)"><em>I</em></button>
-        <button data-cmd="code" class="toolbar-btn" title="كود inline">{ }</button>
-        <button data-cmd="codeblock" class="toolbar-btn" title="كتلة كود">```</button>
-        <button data-cmd="blockquote" class="toolbar-btn" title="اقتباس">❝</button>
-        <button data-cmd="hr" class="toolbar-btn" title="فاصل">―――</button>
+        <button data-cmd="bold" class="toolbar-btn toolbar-btn-small" title="عريض (Ctrl+B)"><strong>B</strong></button>
+        <button data-cmd="italic" class="toolbar-btn toolbar-btn-small" title="مائل (Ctrl+I)"><em>I</em></button>
+        <button data-cmd="code" class="toolbar-btn toolbar-btn-small" title="كود inline">{\ }</button>
+        <button data-cmd="codeblock" class="toolbar-btn toolbar-btn-small" title="كتلة كود">```</button>
+        <button data-cmd="blockquote" class="toolbar-btn toolbar-btn-small" title="اقتباس">❝</button>
+        <button data-cmd="hr" class="toolbar-btn toolbar-btn-small" title="فاصل">―</button>
       </div>
 
+      <!-- المجموعة الثانية: العناوين -->
       <div class="toolbar-group">
-        <button data-cmd="h1" class="toolbar-btn">H1</button>
-        <button data-cmd="h2" class="toolbar-btn">H2</button>
-        <button data-cmd="h3" class="toolbar-btn">H3</button>
-        <button data-cmd="h4" class="toolbar-btn">H4</button>
-        <button data-cmd="h5" class="toolbar-btn">H5</button>
-        <button data-cmd="h6" class="toolbar-btn">H6</button>
+        <button data-cmd="h1" class="toolbar-btn toolbar-btn-small" title="عنوان رئيسي">H1</button>
+        <button data-cmd="h2" class="toolbar-btn toolbar-btn-small" title="عنوان فرعي">H2</button>
+        <button data-cmd="h3" class="toolbar-btn toolbar-btn-small" title="عنوان ثانوي">H3</button>
+        <button data-cmd="h4" class="toolbar-btn toolbar-btn-small" title="عنوان صغير">H4</button>
       </div>
 
+      <!-- المجموعة الثالثة: القوائم -->
       <div class="toolbar-group">
-        <button data-cmd="ul" class="toolbar-btn">• قائمة</button>
-        <button data-cmd="ol" class="toolbar-btn">1. قائمة</button>
-        <button data-cmd="task" class="toolbar-btn">☑️ مهمة</button>
+        <button data-cmd="ul" class="toolbar-btn toolbar-btn-small" title="قائمة نقطية">•</button>
+        <button data-cmd="ol" class="toolbar-btn toolbar-btn-small" title="قائمة رقمية">1.</button>
+        <button data-cmd="task" class="toolbar-btn toolbar-btn-small" title="قائمة مهام">☑</button>
       </div>
 
+      <!-- المجموعة الرابعة: الجدول والوسائط -->
       <div class="toolbar-group">
-        <button data-cmd="table" class="toolbar-btn">جدول</button>
-        <button data-cmd="link" class="toolbar-btn">🔗 رابط</button>
-        <button data-cmd="image" class="toolbar-btn">🖼️ صورة</button>
-        <button data-cmd="align-left" class="toolbar-btn" title="محاذاة يسار">⇤</button>
-        <button data-cmd="align-center" class="toolbar-btn" title="محاذاة وسط">⇆</button>
-        <button data-cmd="align-right" class="toolbar-btn" title="محاذاة يمين">⇥</button>
+        <button data-cmd="table" class="toolbar-btn toolbar-btn-small" title="جدول">جدول</button>
+        <button data-cmd="link" class="toolbar-btn toolbar-btn-small" title="رابط">🔗</button>
+        <button data-cmd="image" class="toolbar-btn toolbar-btn-small" title="صورة">🖼</button>
+      </div>
+
+      <!-- المجموعة الخامسة: المحاذاة -->
+      <div class="toolbar-group">
+        <button data-cmd="align-left" class="toolbar-btn toolbar-btn-small" title="محاذاة يسار">⇤</button>
+        <button data-cmd="align-center" class="toolbar-btn toolbar-btn-small" title="محاذاة وسط">↔</button>
+        <button data-cmd="align-right" class="toolbar-btn toolbar-btn-small" title="محاذاة يمين">⇥</button>
       </div>
     </nav>
 
@@ -92,8 +98,8 @@
         <div class="panel-header">
           <h3>👁️ المعاينة</h3>
           <div class="preview-actions">
-            <button id="exportHtml" class="btn-secondary">تصدير HTML</button>
-            <button id="exportPdf" class="btn-secondary">تصدير PDF</button>
+            <button id="exportHtml" class="btn-secondary">HTML</button>
+            <button id="exportPdf" class="btn-secondary">PDF</button>
             <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">تكبير المعاينة</button>
           </div>
         </div>
@@ -110,13 +116,13 @@
         <span id="lineCount">السطور: 1</span>
       </div>
       <div class="status-actions">
-        <button id="saveBtn" class="btn-success">💾 حفظ (Markdown)</button>
+        <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
         <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
       </div>
     </footer>
 
     <div class="site-footer" role="contentinfo">
-      <small>مطور: SalehGNUTUX — <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank" rel="noopener">رابط المستودع على GitHub</a></small>
+      <small>مطور: SalehGNUTUX — <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank" rel="noopener">GitHub</a></small>
     </div>
   </div>
 
