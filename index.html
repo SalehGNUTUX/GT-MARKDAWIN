@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="gt-markdawin-icon.png" type="image/png" />
   <!-- html2pdf bundle -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <div class="app-container">
@@ -69,7 +69,7 @@
     <main class="editor-container split">
       <div class="editor-panel">
         <div class="panel-header">
-          <h3>الكتابة</h3>
+          <h3>✍️ الكتابة</h3>
           <div class="editor-actions">
             <button id="togglePreview" class="btn-primary">إخفاء المعاينة</button>
             <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">تكبير المحرر</button>
@@ -77,19 +77,29 @@
             <button id="importBtn" class="btn-secondary">استيراد</button>
           </div>
         </div>
-        <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN"></textarea>
+        <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN
+
+اكتب نص ماركداون هنا...
+
+## الميزات:
+- تحويل تلقائي إلى HTML
+- دعم كامل للغة العربية
+- تصدير إلى PDF و HTML
+- رموز تعبيرية مدمجة"></textarea>
       </div>
 
       <div class="preview-panel">
         <div class="panel-header">
-          <h3>المعاينة</h3>
+          <h3>👁️ المعاينة</h3>
           <div class="preview-actions">
             <button id="exportHtml" class="btn-secondary">تصدير HTML</button>
             <button id="exportPdf" class="btn-secondary">تصدير PDF</button>
             <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">تكبير المعاينة</button>
           </div>
         </div>
-        <div id="preview" class="preview-content">المعاينة ستظهر هنا...</div>
+        <div id="preview" class="preview-content">
+          <p class="preview-empty">اكتب شيئًا ليعرض هنا...</p>
+        </div>
       </div>
     </main>
 
@@ -114,7 +124,7 @@
 
   <div id="linkModal" class="modal hidden" aria-hidden="true">
     <div class="modal-content">
-      <h3>إدراج رابط</h3>
+      <h3>🔗 إدراج رابط</h3>
       <label>نص الرابط</label>
       <input id="linkText" type="text" placeholder="نص الرابط (اختياري)" />
       <label>رابط URL</label>
@@ -128,7 +138,7 @@
 
   <div id="imageModal" class="modal hidden" aria-hidden="true">
     <div class="modal-content">
-      <h3>إدراج صورة</h3>
+      <h3>🖼️ إدراج صورة</h3>
       <label>النص البديل</label>
       <input id="imageAlt" type="text" placeholder="نص بديل للصورة" />
       <label>رابط الصورة URL</label>
