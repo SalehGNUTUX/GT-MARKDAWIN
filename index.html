@@ -6,11 +6,15 @@
   <title>GT-MARKDAWIN — محرر ماركداون متطور</title>
   <meta name="description" content="محرر مارك داون عصري يدعم العربية" />
   <meta name="theme-color" content="#0b0f13" />
+  
+  <!-- خطوط Google Fonts للعربية -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+  
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="gt-markdawin-icon.png" type="image/png" />
-  <!-- html2pdf bundle -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <div class="app-container">
@@ -22,6 +26,9 @@
       <div class="header-right">
         <select id="fontSelector" class="font-selector" title="اختيار الخط">
           <option value="__system__">افتراضي النظام</option>
+          <option value="Amiri">Amiri (خط عربي)</option>
+          <option value="Scheherazade">Scheherazade (خط عربي)</option>
+          <option value="Noto Naskh Arabic">Noto Naskh Arabic (خط عربي)</option>
         </select>
         <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
         <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرية">😊</button>
@@ -32,7 +39,6 @@
     </header>
 
     <nav class="toolbar" aria-label="شريط أدوات الماركداون">
-      <!-- المجموعة الأولى: النصوص الأساسية -->
       <div class="toolbar-group">
         <button data-cmd="bold" class="toolbar-btn toolbar-btn-small" title="عريض (Ctrl+B)"><strong>B</strong></button>
         <button data-cmd="italic" class="toolbar-btn toolbar-btn-small" title="مائل (Ctrl+I)"><em>I</em></button>
@@ -42,7 +48,6 @@
         <button data-cmd="hr" class="toolbar-btn toolbar-btn-small" title="فاصل">―</button>
       </div>
 
-      <!-- المجموعة الثانية: العناوين -->
       <div class="toolbar-group">
         <button data-cmd="h1" class="toolbar-btn toolbar-btn-small" title="عنوان رئيسي">H1</button>
         <button data-cmd="h2" class="toolbar-btn toolbar-btn-small" title="عنوان فرعي">H2</button>
@@ -50,21 +55,18 @@
         <button data-cmd="h4" class="toolbar-btn toolbar-btn-small" title="عنوان صغير">H4</button>
       </div>
 
-      <!-- المجموعة الثالثة: القوائم -->
       <div class="toolbar-group">
         <button data-cmd="ul" class="toolbar-btn toolbar-btn-small" title="قائمة نقطية">•</button>
         <button data-cmd="ol" class="toolbar-btn toolbar-btn-small" title="قائمة رقمية">1.</button>
         <button data-cmd="task" class="toolbar-btn toolbar-btn-small" title="قائمة مهام">☑</button>
       </div>
 
-      <!-- المجموعة الرابعة: الجدول والوسائط -->
       <div class="toolbar-group">
         <button data-cmd="table" class="toolbar-btn toolbar-btn-small" title="جدول">جدول</button>
         <button data-cmd="link" class="toolbar-btn toolbar-btn-small" title="رابط">🔗</button>
         <button data-cmd="image" class="toolbar-btn toolbar-btn-small" title="صورة">🖼</button>
       </div>
 
-      <!-- المجموعة الخامسة: المحاذاة -->
       <div class="toolbar-group">
         <button data-cmd="align-left" class="toolbar-btn toolbar-btn-small" title="محاذاة يسار">⇤</button>
         <button data-cmd="align-center" class="toolbar-btn toolbar-btn-small" title="محاذاة وسط">↔</button>
@@ -87,11 +89,23 @@
 
 اكتب نص ماركداون هنا...
 
-## الميزات:
-- تحويل تلقائي إلى HTML
+## مثال على النص العربي:
+هذا مثال على نص عربي في محرر ماركداون المتطور.
+
+### ميزات المحرر:
 - دعم كامل للغة العربية
-- تصدير إلى PDF و HTML
-- رموز تعبيرية مدمجة"></textarea>
+- تصدير إلى PDF بجودة عالية
+- معاينة فورية
+- رموز تعبيرية متنوعة
+
+> هذا اقتباس من نص عربي
+
+```javascript
+// مثال على كود برمجي
+function hello() {
+    return 'مرحبًا بالعالم';
+}
+```"></textarea>
       </div>
 
       <div class="preview-panel">
