@@ -1,17 +1,27 @@
-/* script.js — الإصدار النهائي مع إصلاح PDF كامل */
+/* script.js — الإصدار النهائي مع جميع الإصلاحات */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
-/* notifier */
+/* notifier - مركزية */
 const notifier = {
   show(msg, type='info', time=2200){
     const existing = document.querySelector('.gt-notification'); 
     if(existing) existing.remove();
+    
     const n = document.createElement('div'); 
     n.className='gt-notification'; 
     n.dataset.type=type; 
-    n.textContent=msg; 
+    
+    // إضافة أيقونة حسب النوع
+    let icon = '💡';
+    if(type === 'success') icon = '✅';
+    if(type === 'error') icon = '❌';
+    if(type === 'warning') icon = '⚠️';
+    
+    n.innerHTML = `<span style="font-size:1.2rem">${icon}</span><span>${msg}</span>`;
+    
     document.body.appendChild(n);
+    
     setTimeout(()=>n.classList.add('visible'),20); 
     setTimeout(()=>{ 
       n.classList.remove('visible'); 
@@ -49,7 +59,6 @@ class FontManager {
     }
     
     this.scanFonts(); 
-    this.timer = setInterval(()=>this.scanFonts(),15000);
     
     if(this.selectEl){
       this.selectEl.addEventListener('change', ()=>{
@@ -58,9 +67,10 @@ class FontManager {
           document.documentElement.style.removeProperty('--app-font');
         }
         else {
-          document.documentElement.style.setProperty('--app-font', `"${v}", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial`);
+          document.documentElement.style.setProperty('--app-font', `"${v}", 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', system-ui`);
         }
         localStorage.setItem('gt-markdawin-font', v);
+        notifier.show(`تم تغيير الخط إلى ${v}`, 'success', 1500);
       });
       
       const saved = localStorage.getItem('gt-markdawin-font');
@@ -108,26 +118,21 @@ class FontManager {
       console.warn("fonts.json غير متاح"); 
     } 
     
-    const common = [
-      'Samim','Dubai-Regular','Dubai-Medium','Dubai-Light',
-      'Dubai-Bold','UthmanicHafs1 Ver13','ArbFONTS-Amiri-Quran',
-      'amiri-quran','Ubuntu Arabic Regular','Ubuntu Arabic Bold'
-    ]; 
+    // إضافة خطوط افتراضية
+    const defaultFonts = [
+      {name: 'Amiri', value: 'Amiri'},
+      {name: 'Scheherazade', value: 'Scheherazade'},
+      {name: 'Noto Naskh Arabic', value: 'Noto Naskh Arabic'}
+    ];
     
-    const candidates=[];
-    for(const base of common){ 
-      for(const ext of FONT_EXTENSIONS){ 
-        const url = `fonts/${base}${ext}`; 
-        try{ 
-          const h = await fetch(url, {method:'HEAD'}); 
-          if(h.ok){ 
-            candidates.push({name:this.nameFrom(base+ext), url}); 
-            break; 
-          } 
-        }catch(e){} 
-      } 
-    } 
-    if(candidates.length) this.applyFonts(candidates); 
+    defaultFonts.forEach(font => {
+      if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===font.value)){ 
+        const o=document.createElement('option'); 
+        o.value=font.value; 
+        o.textContent=font.name; 
+        this.selectEl.appendChild(o); 
+      }
+    });
   }
   
   nameFrom(filename){ 
@@ -258,7 +263,7 @@ class EmojiManager {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
       gap: 6px;
-      padding: 10px;
+      padding: 12px;
       max-height: 250px;
       overflow-y: auto;
     `;
@@ -275,7 +280,7 @@ class EmojiManager {
         cursor: pointer;
         font-size: 1.4rem;
         padding: 5px;
-        border-radius: 5px;
+        border-radius: 8px;
         transition: all 0.2s;
         width: 36px;
         height: 36px;
@@ -287,11 +292,13 @@ class EmojiManager {
       btn.addEventListener('mouseenter', () => {
         btn.style.background='rgba(56, 163, 255, 0.2)';
         btn.style.transform='scale(1.1)';
+        btn.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)';
       });
       
       btn.addEventListener('mouseleave', () => {
         btn.style.background='transparent';
         btn.style.transform='scale(1)';
+        btn.style.boxShadow='none';
       });
       
       btn.addEventListener('click', ()=>{
@@ -331,6 +338,7 @@ class GTMarkdaWin {
     this.theme='dark';
     this.isEditorSyncing=false; 
     this.isPreviewSyncing=false;
+    this.isSyncEnabled = true; // المزامنة مفعلة افتراضياً
     this.init();
   }
 
@@ -357,7 +365,8 @@ class GTMarkdaWin {
     this.saveToStorage = this._debounce(()=>this._saveToStorage(), 300);
     this._updatePreview();
     this.updateStats();
-    notifier.show('GT-MARKDAWIN جاهز 🎉','success',900);
+    this.updateSyncButton();
+    notifier.show('GT-MARKDAWIN جاهز للكتابة 🎉','success',1200);
   }
 
   bindUI(){
@@ -393,7 +402,10 @@ class GTMarkdaWin {
     if($('#importBtn')) $('#importBtn').addEventListener('click', ()=>this.importFile());
     if($('#exportHtml')) $('#exportHtml').addEventListener('click', ()=>this.exportHTML());
     if($('#exportPdf')) $('#exportPdf').addEventListener('click', ()=>this.exportPDF());
-    if($('#togglePreview')) $('#togglePreview').addEventListener('click', (e)=>this.togglePreview(e.target));
+    
+    // إزالة زر togglePreview وإضافة زر syncToggle
+    if($('#syncToggle')) $('#syncToggle').addEventListener('click', ()=>this.toggleSync());
+    
     if($('#saveBtn')) $('#saveBtn').addEventListener('click', ()=>this.exportMarkdown());
     if($('#loadBtn')) $('#loadBtn').addEventListener('click', ()=>this.importFile());
     
@@ -411,7 +423,7 @@ class GTMarkdaWin {
       if(e.target===m) this.hideModal(m.id); 
     }));
     
-    // sync scroll
+    // sync scroll - مع التحكم بالمزامنة
     if(this.editor) this.editor.addEventListener('scroll', ()=>this.syncScrollEditor());
     if(this.preview) this.preview.addEventListener('scroll', ()=>this.syncScrollPreview());
   }
@@ -549,6 +561,10 @@ class GTMarkdaWin {
       document.body.setAttribute('dir', defaultDir); 
       if(this.editor) this.editor.setAttribute('dir', defaultDir); 
     }
+    
+    // تحميل حالة المزامنة
+    const savedSync = localStorage.getItem('gt-markdawin-sync');
+    this.isSyncEnabled = savedSync !== 'false'; // true افتراضي
   }
 
   showModal(id){ 
@@ -574,6 +590,7 @@ class GTMarkdaWin {
       $('#linkUrl').value=''; 
       this.hideModal('linkModal'); 
       this.updatePreview(); 
+      notifier.show('تم إدراج الرابط', 'success'); 
     } else {
       notifier.show('الرجاء إدخال رابط','error'); 
     }
@@ -588,6 +605,7 @@ class GTMarkdaWin {
       $('#imageUrl').value=''; 
       this.hideModal('imageModal'); 
       this.updatePreview(); 
+      notifier.show('تم إدراج الصورة', 'success'); 
     } else {
       notifier.show('الرجاء إدخال رابط الصورة','error'); 
     }
@@ -599,13 +617,16 @@ class GTMarkdaWin {
     const t = $('#themeToggle'); 
     if(t) t.textContent = this.theme==='dark' ? '☀️' : '🌙'; 
     localStorage.setItem('gt-markdawin-theme', this.theme); 
+    notifier.show(`السمة: ${this.theme === 'dark' ? 'داكن' : 'فاتح'}`, 'success', 1000);
   }
   
   toggleFullscreen(){ 
     if(!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(e=>notifier.show(`خطأ: ${e.message}`,'error'));
+      notifier.show('وضع ملء الشاشة مفعل', 'info');
     } else {
       document.exitFullscreen(); 
+      notifier.show('وضع ملء الشاشة معطل', 'info');
     }
   }
   
@@ -616,7 +637,7 @@ class GTMarkdaWin {
     document.body.setAttribute('dir', next); 
     if(this.editor) this.editor.setAttribute('dir', next); 
     localStorage.setItem('gt-markdawin-dir', next); 
-    notifier.show(`اتجاه النص: ${next.toUpperCase()}`,'success',900); 
+    notifier.show(`اتجاه النص: ${next === 'rtl' ? 'يمين إلى يسار' : 'يسار إلى يمين'}`,'success',1200); 
   }
 
   clearEditor(){ 
@@ -625,33 +646,6 @@ class GTMarkdaWin {
       this.editor.dispatchEvent(new Event('input',{bubbles:true})); 
       notifier.show('تم مسح المحتوى','info'); 
     } 
-  }
-
-  togglePreview(btn){
-    const container = document.querySelector('.editor-container'); 
-    if(!container) return;
-    
-    this.isPreviewVisible = !this.isPreviewVisible;
-    
-    if(this.isPreviewVisible){
-      container.classList.remove('editor-full','preview-full'); 
-      container.classList.add('split'); 
-      
-      document.querySelector('.preview-panel').style.display='flex'; 
-      document.querySelector('.editor-panel').style.display='flex'; 
-      document.querySelector('.editor-container').style.gridTemplateColumns='1fr 1fr'; 
-      
-      if(btn) btn.textContent='إخفاء المعاينة'; 
-    } else { 
-      container.classList.remove('split','preview-full'); 
-      container.classList.add('editor-full'); 
-      
-      document.querySelector('.preview-panel').style.display='none'; 
-      document.querySelector('.editor-panel').style.display='flex'; 
-      document.querySelector('.editor-container').style.gridTemplateColumns='1fr'; 
-      
-      if(btn) btn.textContent='إظهار المعاينة'; 
-    }
   }
 
   toggleFocus(target){
@@ -701,6 +695,27 @@ class GTMarkdaWin {
     }
   }
 
+  toggleSync(){
+    this.isSyncEnabled = !this.isSyncEnabled;
+    localStorage.setItem('gt-markdawin-sync', this.isSyncEnabled);
+    this.updateSyncButton();
+    
+    if(this.isSyncEnabled) {
+      notifier.show('المزامنة مفعلة - التحريك متزامن', 'success', 1200);
+    } else {
+      notifier.show('المزامنة معطلة - التحريك مستقل', 'info', 1200);
+    }
+  }
+
+  updateSyncButton(){
+    const syncBtn = $('#syncToggle');
+    if(syncBtn) {
+      syncBtn.innerHTML = this.isSyncEnabled ? '🔗 مزامنة' : '🔓 منفصل';
+      syncBtn.title = this.isSyncEnabled ? 'إيقاف مزامنة التحريك' : 'تفعيل مزامنة التحريك';
+      syncBtn.classList.toggle('syncing', this.isSyncEnabled);
+    }
+  }
+
   importFile(){ 
     const input=document.createElement('input'); 
     input.type='file'; 
@@ -732,16 +747,50 @@ class GTMarkdaWin {
   }
   
   exportMarkdown(){ 
-    this._download('document.md', this.editor.value, 'text/markdown'); 
+    const filename = `مستند-${this.getMoroccanDate()}.md`;
+    this._download(filename, this.editor.value, 'text/markdown'); 
   }
   
   exportHTML(){ 
     const content=this.preview.innerHTML; 
-    const fullHtml=`<!doctype html><html lang="ar" dir="${document.body.getAttribute('dir')||'rtl'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مستند</title></head><body>${content}</body></html>`; 
-    this._download('document.html', fullHtml, 'text/html'); 
+    const fullHtml=`<!doctype html><html lang="ar" dir="${document.body.getAttribute('dir')||'rtl'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مستند GT-MARKDAWIN</title></head><body>${content}</body></html>`; 
+    const filename = `مستند-${this.getMoroccanDate()}.html`;
+    this._download(filename, fullHtml, 'text/html'); 
   }
 
-  /* exportPDF - حل نهائي يعمل مع الخطوط العربية */
+  getMoroccanDate() {
+    const now = new Date();
+    // توقيت المغرب (UTC+1)
+    const moroccoTime = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+    
+    const year = moroccoTime.getFullYear();
+    const month = String(moroccoTime.getMonth() + 1).padStart(2, '0');
+    const day = String(moroccoTime.getDate()).padStart(2, '0');
+    const hours = String(moroccoTime.getHours()).padStart(2, '0');
+    const minutes = String(moroccoTime.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}_${hours}-${minutes}`;
+  }
+
+  getMoroccanDateFormatted() {
+    const now = new Date();
+    const moroccoTime = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+    
+    const options = {
+      timeZone: 'Africa/Casablanca',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
+    
+    return new Intl.DateTimeFormat('ar-MA', options).format(moroccoTime);
+  }
+
+  /* exportPDF - مضمون مع توقيت المغرب */
   async exportPDF() {
     // تحديث المعاينة أولاً
     this._updatePreview();
@@ -755,19 +804,11 @@ class GTMarkdaWin {
     notifier.show('جارٍ تحضير PDF...', 'info', 2000);
 
     try {
-      // 1. إنشاء نافذة طباعة مخصصة للعربية
-      const printDate = new Date().toLocaleDateString('ar-SA', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-      });
+      // استخدام توقيت المغرب
+      const printDate = this.getMoroccanDateFormatted();
       
-      const printTime = new Date().toLocaleTimeString('ar-SA');
-      
-      // الحصول على الخط الحالي
       const currentFont = document.documentElement.style.getPropertyValue('--app-font') || 
-                         'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial';
+                         'Amiri, Scheherazade, Noto Naskh Arabic, system-ui';
       
       const currentDir = document.body.getAttribute('dir') || 'rtl';
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -779,7 +820,7 @@ class GTMarkdaWin {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GT-MARKDAWIN - ${printDate}</title>
+    <title>GT-MARKDAWIN - ${printDate.split('،')[0]}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
         
@@ -790,7 +831,7 @@ class GTMarkdaWin {
         }
         
         body {
-            font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', ${currentFont}, serif;
+            font-family: ${currentFont}, serif;
             direction: ${currentDir};
             line-height: 1.8;
             color: #000;
@@ -833,7 +874,6 @@ class GTMarkdaWin {
             margin-top: 20px;
         }
         
-        /* أنماط الماركداون */
         h1, h2, h3, h4, h5, h6 {
             color: #2c3e50;
             margin: 25px 0 15px 0;
@@ -947,21 +987,10 @@ class GTMarkdaWin {
             font-size: 10pt;
         }
         
-        /* أنماط الطباعة */
         @media print {
             @page {
                 size: A4;
                 margin: 25mm;
-                @top-right {
-                    content: "GT-MARKDAWIN";
-                    font-size: 10pt;
-                    color: #7f8c8d;
-                }
-                @bottom-center {
-                    content: "الصفحة " counter(page) " من " counter(pages);
-                    font-size: 10pt;
-                    color: #7f8c8d;
-                }
             }
             
             body {
@@ -972,14 +1001,6 @@ class GTMarkdaWin {
             
             .page-break {
                 page-break-before: always;
-            }
-            
-            h1, h2, h3, h4, h5, h6 {
-                page-break-after: avoid;
-            }
-            
-            p, ul, ol, blockquote, pre, table, img {
-                page-break-inside: avoid;
             }
         }
     </style>
@@ -994,9 +1015,6 @@ class GTMarkdaWin {
         <div class="date">
             <strong>التاريخ:</strong> ${printDate}
         </div>
-        <div class="time">
-            <strong>الوقت:</strong> ${printTime}
-        </div>
         <div class="direction">
             <strong>الاتجاه:</strong> ${currentDir === 'rtl' ? 'من اليمين لليسار' : 'من اليسار لليمين'}
         </div>
@@ -1008,26 +1026,26 @@ class GTMarkdaWin {
     
     <div class="footer">
         <p>تم إنشاء هذا المستند بواسطة GT-MARKDAWIN</p>
-        <p>${printDate} - ${printTime}</p>
+        <p>${printDate}</p>
     </div>
 </body>
 </html>`;
       
-      // 2. إنشاء نافذة طباعة
+      // إنشاء نافذة طباعة
       const printWindow = window.open('', '_blank');
       
-      // 3. كتابة المحتوى إلى النافذة
+      // كتابة المحتوى إلى النافذة
       printWindow.document.open();
       printWindow.document.write(printContent);
       printWindow.document.close();
       
-      // 4. انتظار تحميل الخطوط والصور
+      // انتظار تحميل الخطوط والصور
       printWindow.onload = () => {
         setTimeout(() => {
-          // 5. طباعة النافذة
+          // طباعة النافذة
           printWindow.print();
           
-          // 6. إغلاق النافذة بعد الطباعة
+          // إغلاق النافذة بعد الطباعة
           setTimeout(() => {
             printWindow.close();
           }, 1000);
@@ -1048,6 +1066,7 @@ class GTMarkdaWin {
   }
   
   syncScrollEditor(){ 
+    if(!this.isSyncEnabled) return;
     if(this.isPreviewSyncing){ 
       this.isPreviewSyncing=false; 
       return; 
@@ -1059,6 +1078,7 @@ class GTMarkdaWin {
   }
   
   syncScrollPreview(){ 
+    if(!this.isSyncEnabled) return;
     if(this.isEditorSyncing){ 
       this.isEditorSyncing=false; 
       return; 
