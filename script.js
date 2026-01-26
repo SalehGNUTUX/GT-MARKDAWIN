@@ -41,17 +41,21 @@ if(typeof marked !== 'undefined') marked.setOptions({
   smartypants: true
 });
 
-/* FontManager - معدّل للعمل بدون إنترنت */
+/* FontManager - معدّل مع دعم الخطوط المباشر */
 const FONT_EXTENSIONS = ['.woff2','.woff','.ttf','.otf'];
 class FontManager {
   constructor(selectEl, importBtn){
     this.selectEl = selectEl; 
     this.importBtn = importBtn; 
     this.loaded = new Map(); 
+    this.fonts = new Map(); // خريطة لتخزين معلومات الخطوط
     this.init();
   }
   
   init(){
+    // تحميل الخطوط المضمنة مباشرة
+    this.loadEmbeddedFonts();
+    
     if(this.importBtn && window.showDirectoryPicker) {
       this.importBtn.addEventListener('click', ()=>this.pickDirectory());
     }
@@ -59,16 +63,22 @@ class FontManager {
       this.importBtn.addEventListener('click', ()=>notifier.show('استخدم fonts.json أو ضع ملفات الخطوط في مجلد fonts/','info'));
     }
     
-    this.loadDefaultFonts();
+    // تحميل الخطوط من ملف fonts.json إذا وجد
+    this.loadFromFontsJson();
+    
+    // تحميل الخطوط المحلية
+    this.loadLocalFonts();
     
     if(this.selectEl){
       this.selectEl.addEventListener('change', ()=>{
         const v = this.selectEl.value;
         this.applyFont(v);
         localStorage.setItem('gt-markdawin-font', v);
-        notifier.show(`تم تغيير الخط إلى ${v}`, 'success', 1500);
+        const displayName = this.fonts.get(v)?.name || v;
+        notifier.show(`تم تغيير الخط إلى ${displayName}`, 'success', 1500);
       });
       
+      // تطبيق الخط المحفوظ
       const saved = localStorage.getItem('gt-markdawin-font');
       if(saved) {
         setTimeout(()=>{ 
@@ -77,26 +87,103 @@ class FontManager {
             this.applyFont(saved);
           } 
         }, 800);
+      } else {
+        // تطبيق الخط الافتراضي
+        this.applyFont('__system__');
       }
     }
   }
   
+  loadEmbeddedFonts() {
+    // الخطوط المضمنة في HTML (تم تعريفها مسبقاً)
+    const embeddedFonts = [
+      {name: 'Amiri Quran', value: 'Amiri Quran', display: 'Amiri Quran (خط قرآني)'},
+      {name: 'Amiri Quran Colored', value: 'Amiri Quran Colored', display: 'Amiri Quran Colored (ملون)'},
+      {name: 'Uthmanic Hafs', value: 'Uthmanic Hafs', display: 'Uthmanic Hafs (عثماني)'},
+      {name: 'Arslan Wessam A', value: 'Arslan Wessam A', display: 'Arslan Wessam A (أسلان)'},
+      {name: 'Noto Sans Arabic', value: 'Noto Sans Arabic', display: 'Noto Sans Arabic'},
+      {name: 'Noto Sans Arabic Thin', value: 'Noto Sans Arabic Thin', display: 'Noto Sans Arabic Thin'},
+      {name: 'Ubuntu Arabic', value: 'Ubuntu Arabic', display: 'Ubuntu Arabic'},
+      {name: 'Ubuntu Arabic Bold', value: 'Ubuntu Arabic Bold', display: 'Ubuntu Arabic Bold'},
+      {name: 'Arial', value: 'Arial', display: 'Arial'},
+      {name: 'system-ui', value: 'system-ui', display: 'خط النظام'},
+      {name: 'افتراضي النظام', value: '__system__', display: 'افتراضي النظام'}
+    ];
+    
+    embeddedFonts.forEach(font => {
+      this.fonts.set(font.value, {
+        name: font.name,
+        display: font.display,
+        embedded: true
+      });
+    });
+  }
+  
+  async loadFromFontsJson() {
+    try {
+      const response = await fetch('fonts.json');
+      if(response.ok){
+        const fontList = await response.json();
+        if(Array.isArray(fontList)){
+          fontList.forEach(fontData => {
+            if(fontData.name && fontData.path) {
+              this.fonts.set(fontData.name, {
+                name: fontData.name,
+                path: fontData.path,
+                display: fontData.display || fontData.name
+              });
+            }
+          });
+        }
+      }
+    } catch(e) {
+      console.log('ملف fonts.json غير موجود');
+    }
+  }
+  
+  loadLocalFonts() {
+    // إضافة الخطوط إلى القائمة المنسدلة
+    this.fonts.forEach((fontData, fontValue) => {
+      if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===fontValue)){ 
+        const option = document.createElement('option'); 
+        option.value = fontValue; 
+        option.textContent = fontData.display || fontData.name; 
+        this.selectEl.appendChild(option); 
+      }
+    });
+  }
+  
   applyFont(fontName){
-    if(fontName==='__system__') {
+    if(fontName === '__system__') {
       document.documentElement.style.removeProperty('--app-font');
       document.body.style.fontFamily = '';
+      if(this.preview) {
+        this.preview.style.fontFamily = '';
+      }
     } else if(fontName === 'system-ui') {
-      document.documentElement.style.setProperty('--app-font', 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-      document.body.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const systemFonts = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      document.documentElement.style.setProperty('--app-font', systemFonts);
+      document.body.style.fontFamily = systemFonts;
+      if(this.preview) {
+        this.preview.style.fontFamily = systemFonts;
+      }
     } else {
-      document.documentElement.style.setProperty('--app-font', `"${fontName}", 'Amiri', system-ui`);
-      document.body.style.fontFamily = `"${fontName}", 'Amiri', system-ui`;
-    }
-    
-    // تحديث المعاينة أيضاً
-    const preview = $('#preview');
-    if(preview) {
-      preview.style.fontFamily = document.body.style.fontFamily;
+      const fontFamily = `"${fontName}", 'Amiri Quran', 'Uthmanic Hafs', system-ui`;
+      document.documentElement.style.setProperty('--app-font', fontFamily);
+      document.body.style.fontFamily = fontFamily;
+      
+      // تحديث المعاينة أيضاً
+      const preview = $('#preview');
+      if(preview) {
+        preview.style.fontFamily = fontFamily;
+      }
+      
+      // تحديث المحرر
+      const editor = $('#editor');
+      if(editor) {
+        // للمحرر نستخدم خط monospace للكود
+        editor.style.fontFamily = `${fontFamily}, 'Cascadia Code', 'Fira Code', monospace`;
+      }
     }
   }
   
@@ -108,7 +195,8 @@ class FontManager {
         if(entry.kind==='file' && FONT_EXTENSIONS.some(ext=>entry.name.toLowerCase().endsWith(ext))){ 
           const file = await entry.getFile(); 
           const url = URL.createObjectURL(file); 
-          fonts.push({name:this.nameFrom(entry.name), url}); 
+          const fontName = this.cleanFontName(entry.name);
+          fonts.push({name: fontName, url}); 
         } 
       } 
       if(fonts.length) this.applyFonts(fonts); 
@@ -118,54 +206,9 @@ class FontManager {
     } 
   }
   
-  loadDefaultFonts(){ 
-    // خطوط افتراضية تعمل بدون إنترنت
-    const defaultFonts = [
-      {name: 'افتراضي النظام', value: '__system__'},
-      {name: 'Amiri (خط عربي)', value: 'Amiri'},
-      {name: 'Scheherazade', value: 'Scheherazade'},
-      {name: 'Arial', value: 'Arial'},
-      {name: 'خط النظام', value: 'system-ui'}
-    ];
-    
-    defaultFonts.forEach(font => {
-      if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===font.value)){ 
-        const o=document.createElement('option'); 
-        o.value=font.value; 
-        o.textContent=font.name; 
-        this.selectEl.appendChild(o); 
-      }
-    });
-    
-    // محاولة تحميل الخطوط المحلية إذا وجدت
-    this.tryLoadLocalFonts();
-  }
-  
-  async tryLoadLocalFonts(){
-    try {
-      const response = await fetch('fonts.json');
-      if(response.ok){
-        const fonts = await response.json();
-        if(Array.isArray(fonts)){
-          fonts.forEach(font => {
-            if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===font)){
-              const option = document.createElement('option');
-              option.value = font;
-              option.textContent = this.nameFrom(font);
-              this.selectEl.appendChild(option);
-            }
-          });
-        }
-      }
-    } catch(e) {
-      // لا بأس إذا لم يوجد ملف fonts.json
-      console.log('ملف fonts.json غير موجود، استخدام الخطوط الافتراضية');
-    }
-  }
-  
-  nameFrom(filename){ 
-    const n = filename.split('/').pop().replace(/\.[^.]+$/,''); 
-    return n.replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim(); 
+  cleanFontName(filename){ 
+    const name = filename.split('/').pop().replace(/\.[^.]+$/,''); 
+    return name.replace(/[-_()]+/g,' ').replace(/\s+/g,' ').trim(); 
   }
   
   applyFonts(list){ 
@@ -186,11 +229,19 @@ class FontManager {
       style.appendChild(document.createTextNode(rule)); 
       this.loaded.set(item.name,item.url); 
       
+      // إضافة للقائمة
       if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===item.name)){ 
         const o=document.createElement('option'); 
         o.value=item.name; 
         o.textContent=item.name; 
         this.selectEl.appendChild(o); 
+        
+        // تخزين في الماب
+        this.fonts.set(item.name, {
+          name: item.name,
+          display: item.name,
+          url: item.url
+        });
       } 
       added++; 
     }); 
@@ -477,7 +528,7 @@ class GTMarkdaWin {
     if($('#saveBtn')) $('#saveBtn').addEventListener('click', ()=>this.exportMarkdown());
     if($('#loadBtn')) $('#loadBtn').addEventListener('click', ()=>this.importFileToPreview());
     
-    // تراجع وإعادة
+    // تراجع وإعادة (كلاهما في قسم التحرير)
     if($('#undoBtn')) $('#undoBtn').addEventListener('click', ()=>this.undo());
     if($('#redoBtn')) $('#redoBtn').addEventListener('click', ()=>this.redo());
     
@@ -603,7 +654,7 @@ class GTMarkdaWin {
       this.preview.style.textAlign = dir === 'rtl' ? 'right' : 'left';
       
       // تطبيق الخط الحالي على المعاينة
-      const currentFont = document.body.style.fontFamily || "'Amiri', system-ui";
+      const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
       this.preview.style.fontFamily = currentFont;
       
       this.preview.innerHTML = html; 
@@ -1079,6 +1130,8 @@ class GTMarkdaWin {
   }
 
   getPreviewStyles() {
+    const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
+    
     return `
       * {
         margin: 0;
@@ -1087,7 +1140,7 @@ class GTMarkdaWin {
       }
       
       body {
-        font-family: ${document.body.style.fontFamily || "'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif"};
+        font-family: ${currentFont};
         direction: ${document.body.getAttribute('dir') || 'rtl'};
         line-height: 1.8;
         color: #000;
@@ -1235,7 +1288,7 @@ class GTMarkdaWin {
 
     try {
       const printDate = this.getMoroccanDateFormatted();
-      const currentFont = document.body.style.fontFamily || "'Amiri', system-ui";
+      const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
       const currentDir = document.body.getAttribute('dir') || 'rtl';
       
       const printContent = `
