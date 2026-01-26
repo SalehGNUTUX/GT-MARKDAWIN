@@ -10,16 +10,67 @@
   <!-- خطوط محلية بدلاً من Google Fonts -->
   <style>
     @font-face {
-      font-family: 'Amiri';
-      src: url('fonts/Amiri-Regular.ttf') format('truetype');
+      font-family: 'Amiri Quran';
+      src: url('fonts/ArbFONTS-Amiri-Quran.ttf') format('truetype');
       font-weight: normal;
       font-style: normal;
+      font-display: swap;
     }
+    
     @font-face {
-      font-family: 'Amiri';
-      src: url('fonts/Amiri-Bold.ttf') format('truetype');
+      font-family: 'Amiri Quran Colored';
+      src: url('fonts/amiri-quran-colored.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Uthmanic Hafs';
+      src: url('fonts/UthmanicHafs1 Ver13.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Arslan Wessam A';
+      src: url('fonts/(A) Arslan Wessam A.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Noto Sans Arabic';
+      src: url('fonts/NotoSansArabic-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Noto Sans Arabic Thin';
+      src: url('fonts/NotoSansArabic-Thin.ttf') format('truetype');
+      font-weight: 100;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Ubuntu Arabic';
+      src: url('fonts/Ubuntu Arabic Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Ubuntu Arabic Bold';
+      src: url('fonts/Ubuntu Arabic Bold.ttf') format('truetype');
       font-weight: bold;
       font-style: normal;
+      font-display: swap;
     }
   </style>
   
@@ -40,8 +91,14 @@
       <div class="header-right">
         <select id="fontSelector" class="font-selector" title="اختيار الخط">
           <option value="__system__">افتراضي النظام</option>
-          <option value="Amiri">Amiri (خط عربي)</option>
-          <option value="Scheherazade">Scheherazade</option>
+          <option value="Amiri Quran">Amiri Quran (خط قرآني)</option>
+          <option value="Amiri Quran Colored">Amiri Quran Colored (ملون)</option>
+          <option value="Uthmanic Hafs">Uthmanic Hafs (عثماني)</option>
+          <option value="Arslan Wessam A">Arslan Wessam A (أسلان)</option>
+          <option value="Noto Sans Arabic">Noto Sans Arabic</option>
+          <option value="Noto Sans Arabic Thin">Noto Sans Arabic Thin</option>
+          <option value="Ubuntu Arabic">Ubuntu Arabic</option>
+          <option value="Ubuntu Arabic Bold">Ubuntu Arabic Bold</option>
           <option value="Arial">Arial</option>
           <option value="system-ui">خط النظام</option>
         </select>
@@ -56,6 +113,8 @@
     <nav class="toolbar" aria-label="شريط أدوات الماركداون">
       <div class="toolbar-group">
         <button data-cmd="undo" class="toolbar-btn toolbar-btn-small" title="تراجع (Ctrl+Z)">↶</button>
+        <button data-cmd="redo" class="toolbar-btn toolbar-btn-small" title="إعادة (Ctrl+Y)">↷</button>
+        <span class="toolbar-separator">|</span>
         <button data-cmd="bold" class="toolbar-btn toolbar-btn-small" title="عريض (Ctrl+B)"><strong>B</strong></button>
         <button data-cmd="italic" class="toolbar-btn toolbar-btn-small" title="مائل (Ctrl+I)"><em>I</em></button>
         <button data-cmd="strikethrough" class="toolbar-btn toolbar-btn-small" title="خط في المنتصف"><s>S</s></button>
@@ -110,7 +169,7 @@
           <h3>✍️ الكتابة</h3>
           <div class="editor-actions">
             <button id="undoBtn" class="btn-secondary" title="تراجع (Ctrl+Z)">↶ تراجع</button>
-            <button id="saveBtn" class="btn-success">💾 حفظ</button>
+            <button id="redoBtn" class="btn-secondary" title="إعادة (Ctrl+Y)">↷ إعادة</button>
             <button id="syncToggle" class="btn-secondary btn-sync" title="تفعيل/إلغاء مزامنة التحريك">🔗 مزامنة</button>
             <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">🔍 تكبير المحرر</button>
             <button id="clearBtn" class="btn-secondary">🗑️ مسح</button>
@@ -143,10 +202,10 @@ function hello() {
         <div class="panel-header">
           <h3>👁️ المعاينة</h3>
           <div class="preview-actions">
-            <button id="redoBtn" class="btn-secondary" title="إعادة (Ctrl+Y)">↷ إعادة</button>
-            <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
+            <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
             <button id="exportHtml" class="btn-secondary">🌐 HTML</button>
             <button id="exportPdf" class="btn-secondary">📄 PDF</button>
+            <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
             <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">🔍 تكبير المعاينة</button>
           </div>
         </div>
@@ -164,7 +223,7 @@ function hello() {
         <span id="currentDir">الاتجاه: RTL</span>
       </div>
       <div class="status-actions">
-        <!-- تم نقل زر فتح ملف إلى جزء المعاينة -->
+        <!-- مساحة فارغة -->
       </div>
     </footer>
 
