@@ -549,25 +549,7 @@ class GTMarkdaWin {
         } 
       },800);
     }
-    }
-
-// دالة جديدة لضمان تحميل الشعار
-loadLocalLogo() {
-  const logo = document.querySelector('.app-logo');
-  if (logo) {
-    // حاول تحميل الصورة المحلية أولاً
-    const localLogo = new Image();
-    localLogo.onload = () => {
-      // الصورة المحلية موجودة
-      logo.src = 'gt-markdawin-icon.png';
-    };
-    localLogo.onerror = () => {
-      // استخدم صورة افتراضية إذا لم توجد الصورة المحلية
-      logo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAzNiAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDBDOC4wNiAwIDAgOC4wNiAwIDE4QzAgMjcuOTQgOC4wNiAzNiAxOCAzNkMyNy45NCAzNiAzNiAyNy45NCAzNiAxOEMzNiA4LjA2IDI3Ljk0IDAgMTggMFpNMTggMzNDOS43MTYgMzMgMyAyNi4yODQgMyAxOEMzIDkuNzE2IDkuNzE2IDMgMTggM0MyNi4yODQgMyAzMyA5LjcxNiAzMyAxOEMzMyAyNi4yODQgMjYuMjg0IDMzIDE4IDMzWiIgZmlsbD0iIzM4QTNGRiIvPgo8cGF0aCBkPSJNMTggOC41QzEyLjIxIDguNSA3LjUgMTMuMjEgNy41IDE5QzcuNSAyNC43OSAxMi4yMSAyOS41IDE4IDI5LjVDMjMuNzkgMjkuNSAyOC41IDI0Ljc5IDI4LjUgMTlDMjguNSAxMy4yMSAyMy43OSA4LjUgMTggOC41Wk0xOCAyNy41QzEzLjg2IDI3LjUgMTAuNSAyNC4xNCAxMC41IDIwQzEwLjUgMTUuODYgMTMuODYgMTIuNSAxOCAxMi41QzIyLjE0IDEyLjUgMjUuNSAxNS44NiAyNS41IDIwQzI1LjUgMjQuMTQgMjIuMTQgMjcuNSAxOCAyNy41WiIgZmlsbD0iIzM4QTNGRiIvPgo8cGF0aCBkPSJNMTggMTUuNUMxNi42MiAxNS41IDE1LjUgMTYuNjIgMTUuNSAxOEMxNS41IDE5LjM4IDE2LjYyIDIwLjUgMTggMjAuNUMyMC4zOCAyMC41IDIyLjUgMTguMzggMjIuNSAxNkMyMi41IDEzLjYyIDIwLjM4IDExLjUgMTggMTEuNUMxNS42MiAxMS41IDEzLjUgMTMuNjIgMTMuNSAxNkMxMy41IDE4LjM4IDE1LjYyIDIwLjUgMTggMjAuNVoiIGZpbGw9IiMzOEEzRkYiLz4KPC9zdmc+';
-    };
-    localLogo.src = 'gt-markdawin-icon.png';
-  }
-}
+    
     const savedDir = localStorage.getItem('gt-markdawin-dir'); 
     if(savedDir){
       document.documentElement.setAttribute('dir', savedDir); 
