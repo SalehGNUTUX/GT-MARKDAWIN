@@ -1,4 +1,4 @@
-/* script.js — الإصدار 2.0 المتكامل */
+/* script.js — الإصدار 2.0 المتكامل مع إصلاحات */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
@@ -64,12 +64,7 @@ class FontManager {
     if(this.selectEl){
       this.selectEl.addEventListener('change', ()=>{
         const v = this.selectEl.value;
-        if(v==='__system__') {
-          document.documentElement.style.removeProperty('--app-font');
-        }
-        else {
-          document.documentElement.style.setProperty('--app-font', `"${v}", 'Amiri', system-ui`);
-        }
+        this.applyFont(v);
         localStorage.setItem('gt-markdawin-font', v);
         notifier.show(`تم تغيير الخط إلى ${v}`, 'success', 1500);
       });
@@ -79,10 +74,29 @@ class FontManager {
         setTimeout(()=>{ 
           if([...this.selectEl.options].some(o=>o.value===saved)) { 
             this.selectEl.value=saved; 
-            this.selectEl.dispatchEvent(new Event('change')); 
+            this.applyFont(saved);
           } 
         }, 800);
       }
+    }
+  }
+  
+  applyFont(fontName){
+    if(fontName==='__system__') {
+      document.documentElement.style.removeProperty('--app-font');
+      document.body.style.fontFamily = '';
+    } else if(fontName === 'system-ui') {
+      document.documentElement.style.setProperty('--app-font', 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      document.body.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    } else {
+      document.documentElement.style.setProperty('--app-font', `"${fontName}", 'Amiri', system-ui`);
+      document.body.style.fontFamily = `"${fontName}", 'Amiri', system-ui`;
+    }
+    
+    // تحديث المعاينة أيضاً
+    const preview = $('#preview');
+    if(preview) {
+      preview.style.fontFamily = document.body.style.fontFamily;
     }
   }
   
@@ -109,8 +123,9 @@ class FontManager {
     const defaultFonts = [
       {name: 'افتراضي النظام', value: '__system__'},
       {name: 'Amiri (خط عربي)', value: 'Amiri'},
-      {name: 'خط النظام', value: 'system-ui'},
-      {name: 'خط عريض', value: 'Arial'}
+      {name: 'Scheherazade', value: 'Scheherazade'},
+      {name: 'Arial', value: 'Arial'},
+      {name: 'خط النظام', value: 'system-ui'}
     ];
     
     defaultFonts.forEach(font => {
@@ -454,7 +469,6 @@ class GTMarkdaWin {
     if($('#fullscreenToggle')) $('#fullscreenToggle').addEventListener('click', ()=>this.toggleFullscreen());
     if($('#dirToggle')) $('#dirToggle').addEventListener('click', ()=>this.toggleDirection());
     if($('#clearBtn')) $('#clearBtn').addEventListener('click', ()=>this.clearEditor());
-    if($('#importBtn')) $('#importBtn').addEventListener('click', ()=>this.importFile());
     if($('#exportHtml')) $('#exportHtml').addEventListener('click', ()=>this.exportHTML());
     if($('#exportPdf')) $('#exportPdf').addEventListener('click', ()=>this.exportPDF());
     
@@ -474,6 +488,8 @@ class GTMarkdaWin {
     if($('#cancelImage')) $('#cancelImage').addEventListener('click', ()=>this.hideModal('imageModal'));
     if($('#insertVideo')) $('#insertVideo').addEventListener('click', ()=>this.insertVideo());
     if($('#cancelVideo')) $('#cancelVideo').addEventListener('click', ()=>this.hideModal('videoModal'));
+    if($('#insertAudio')) $('#insertAudio').addEventListener('click', ()=>this.insertAudio());
+    if($('#cancelAudio')) $('#cancelAudio').addEventListener('click', ()=>this.hideModal('audioModal'));
     if($('#insertGif')) $('#insertGif').addEventListener('click', ()=>this.insertGif());
     if($('#cancelGif')) $('#cancelGif').addEventListener('click', ()=>this.hideModal('gifModal'));
     if($('#insertMath')) $('#insertMath').addEventListener('click', ()=>this.insertMath());
@@ -586,6 +602,10 @@ class GTMarkdaWin {
       this.preview.style.direction = dir;
       this.preview.style.textAlign = dir === 'rtl' ? 'right' : 'left';
       
+      // تطبيق الخط الحالي على المعاينة
+      const currentFont = document.body.style.fontFamily || "'Amiri', system-ui";
+      this.preview.style.fontFamily = currentFont;
+      
       this.preview.innerHTML = html; 
     }catch(e){ 
       this.preview.innerHTML = '<p class="preview-error">⚠️ خطأ في تحويل الماركداون</p>'; 
@@ -676,11 +696,18 @@ class GTMarkdaWin {
     const savedFont = localStorage.getItem('gt-markdawin-font'); 
     if(savedFont && this.fontSelector) {
       setTimeout(()=>{ 
-        if([...this.fontSelector.options].some(o=>o.value===savedFont)){ 
+        if([...this.fontSelector.options].some(o=>o.value===savedFont)) { 
           this.fontSelector.value = savedFont; 
-          this.fontSelector.dispatchEvent(new Event('change')); 
+          if(this.fontManager) {
+            this.fontManager.applyFont(savedFont);
+          }
         } 
       },800);
+    } else {
+      // تطبيق الخط الافتراضي
+      if(this.fontManager) {
+        this.fontManager.applyFont('__system__');
+      }
     }
     
     const savedDir = localStorage.getItem('gt-markdawin-dir'); 
@@ -795,6 +822,25 @@ class GTMarkdaWin {
       notifier.show('تم إدراج الفيديو', 'success'); 
     } else {
       notifier.show('الرجاء إدخال رابط الفيديو','error'); 
+    }
+  }
+
+  insertAudio(){ 
+    const url = $('#audioUrl').value; 
+    const alt = $('#audioAlt').value || 'ملف صوتي';
+    const controls = $('#audioControls').value === 'true';
+    
+    if(url){ 
+      const audioHtml = `<audio src="${url}" ${controls ? 'controls' : ''} alt="${alt}"></audio>`;
+      insertAtCursor(`\n\n${audioHtml}\n\n`); 
+      $('#audioUrl').value=''; 
+      $('#audioAlt').value=''; 
+      $('#audioControls').value='true'; 
+      this.hideModal('audioModal'); 
+      this.updatePreview(); 
+      notifier.show('تم إدراج الملف الصوتي', 'success'); 
+    } else {
+      notifier.show('الرجاء إدخال رابط الملف الصوتي','error'); 
     }
   }
 
@@ -981,25 +1027,6 @@ class GTMarkdaWin {
     }
   }
 
-  importFile(){ 
-    const input=document.createElement('input'); 
-    input.type='file'; 
-    input.accept='.md,.txt,.markdown'; 
-    input.onchange=(e)=>{ 
-      const f=e.target.files[0]; 
-      if(f){ 
-        const r=new FileReader(); 
-        r.onload=(ev)=>{ 
-          this.editor.value = ev.target.result; 
-          this.editor.dispatchEvent(new Event('input',{bubbles:true})); 
-          notifier.show(`تم تحميل ${f.name}`,'success'); 
-        }; 
-        r.readAsText(f); 
-      } 
-    }; 
-    input.click(); 
-  }
-
   importFileToPreview(){ 
     const input=document.createElement('input'); 
     input.type='file'; 
@@ -1014,13 +1041,13 @@ class GTMarkdaWin {
           if(f.name.endsWith('.html') || f.name.endsWith('.htm')) {
             // عرض HTML مباشرة في المعاينة
             this.preview.innerHTML = content;
+            notifier.show(`تم فتح ${f.name} في المعاينة`,'success');
           } else {
             // عرض Markdown كمحتوى تحريري
             this.editor.value = content;
             this.editor.dispatchEvent(new Event('input',{bubbles:true}));
+            notifier.show(`تم تحميل ${f.name}`,'success');
           }
-          
-          notifier.show(`تم فتح ${f.name} في المعاينة`,'success'); 
         }; 
         r.readAsText(f); 
       } 
@@ -1060,7 +1087,7 @@ class GTMarkdaWin {
       }
       
       body {
-        font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif;
+        font-family: ${document.body.style.fontFamily || "'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif"};
         direction: ${document.body.getAttribute('dir') || 'rtl'};
         line-height: 1.8;
         color: #000;
@@ -1153,6 +1180,11 @@ class GTMarkdaWin {
         border-radius: 6px;
       }
       
+      audio {
+        width: 100%;
+        margin: 15px 0;
+      }
+      
       hr {
         border: none;
         border-top: 2px solid #eee;
@@ -1190,7 +1222,6 @@ class GTMarkdaWin {
     return new Intl.DateTimeFormat('ar', options).format(moroccoTime);
   }
 
-  /* exportPDF - مضمون مع توقيت المغرب */
   async exportPDF() {
     this._updatePreview();
     
@@ -1204,7 +1235,7 @@ class GTMarkdaWin {
 
     try {
       const printDate = this.getMoroccanDateFormatted();
-      const currentFont = document.documentElement.style.getPropertyValue('--app-font') || 'Amiri, system-ui';
+      const currentFont = document.body.style.fontFamily || "'Amiri', system-ui";
       const currentDir = document.body.getAttribute('dir') || 'rtl';
       
       const printContent = `
@@ -1222,7 +1253,7 @@ class GTMarkdaWin {
         }
         
         body {
-            font-family: ${currentFont}, serif;
+            font-family: ${currentFont};
             direction: ${currentDir};
             line-height: 1.8;
             color: #000;
@@ -1354,6 +1385,11 @@ class GTMarkdaWin {
             display: block;
             margin: 15px auto;
             border-radius: 6px;
+        }
+        
+        audio {
+            width: 100%;
+            margin: 15px 0;
         }
         
         hr {
