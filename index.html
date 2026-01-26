@@ -41,6 +41,9 @@
         <select id="fontSelector" class="font-selector" title="اختيار الخط">
           <option value="__system__">افتراضي النظام</option>
           <option value="Amiri">Amiri (خط عربي)</option>
+          <option value="Scheherazade">Scheherazade</option>
+          <option value="Arial">Arial</option>
+          <option value="system-ui">خط النظام</option>
         </select>
         <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
         <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرية">😊</button>
@@ -53,8 +56,6 @@
     <nav class="toolbar" aria-label="شريط أدوات الماركداون">
       <div class="toolbar-group">
         <button data-cmd="undo" class="toolbar-btn toolbar-btn-small" title="تراجع (Ctrl+Z)">↶</button>
-        <button data-cmd="redo" class="toolbar-btn toolbar-btn-small" title="إعادة (Ctrl+Y)">↷</button>
-        <span class="toolbar-separator">|</span>
         <button data-cmd="bold" class="toolbar-btn toolbar-btn-small" title="عريض (Ctrl+B)"><strong>B</strong></button>
         <button data-cmd="italic" class="toolbar-btn toolbar-btn-small" title="مائل (Ctrl+I)"><em>I</em></button>
         <button data-cmd="strikethrough" class="toolbar-btn toolbar-btn-small" title="خط في المنتصف"><s>S</s></button>
@@ -108,10 +109,11 @@
         <div class="panel-header">
           <h3>✍️ الكتابة</h3>
           <div class="editor-actions">
-            <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
-            <button id="clearBtn" class="btn-secondary">🗑️ مسح</button>
+            <button id="undoBtn" class="btn-secondary" title="تراجع (Ctrl+Z)">↶ تراجع</button>
+            <button id="saveBtn" class="btn-success">💾 حفظ</button>
             <button id="syncToggle" class="btn-secondary btn-sync" title="تفعيل/إلغاء مزامنة التحريك">🔗 مزامنة</button>
             <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">🔍 تكبير المحرر</button>
+            <button id="clearBtn" class="btn-secondary">🗑️ مسح</button>
           </div>
         </div>
         <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN v2.0
@@ -141,10 +143,8 @@ function hello() {
         <div class="panel-header">
           <h3>👁️ المعاينة</h3>
           <div class="preview-actions">
-            <button id="undoBtn" class="btn-secondary" title="تراجع (Ctrl+Z)">↶ تراجع</button>
             <button id="redoBtn" class="btn-secondary" title="إعادة (Ctrl+Y)">↷ إعادة</button>
-            <button id="loadBtn" class="btn-secondary">📂 فتح ملف في المعاينة</button>
-            <button id="importBtn" class="btn-secondary">📥 استيراد ملف للتحرير</button>
+            <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
             <button id="exportHtml" class="btn-secondary">🌐 HTML</button>
             <button id="exportPdf" class="btn-secondary">📄 PDF</button>
             <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">🔍 تكبير المعاينة</button>
@@ -164,7 +164,7 @@ function hello() {
         <span id="currentDir">الاتجاه: RTL</span>
       </div>
       <div class="status-actions">
-        <!-- تم نقل أزرار التراجع والإعادة وإستيراد ملف إلى جزء المعاينة -->
+        <!-- تم نقل زر فتح ملف إلى جزء المعاينة -->
       </div>
     </footer>
 
@@ -173,7 +173,6 @@ function hello() {
     </div>
   </div>
 
-  <!-- بقية الـ modals تبقى كما هي -->
   <div id="emojiPanel" class="emoji-panel hidden" aria-hidden="true"></div>
 
   <div id="linkModal" class="modal hidden" aria-hidden="true">
@@ -222,6 +221,25 @@ function hello() {
       <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
         <button id="cancelVideo" class="btn-secondary">إلغاء</button>
         <button id="insertVideo" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="audioModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🔊 إدراج صوت</h3>
+      <label>رابط الملف الصوتي URL</label>
+      <input id="audioUrl" type="url" placeholder="https://example.com/audio.mp3" />
+      <label>النص البديل</label>
+      <input id="audioAlt" type="text" placeholder="وصف الملف الصوتي" />
+      <label>عرض التحكم</label>
+      <select id="audioControls">
+        <option value="true">إظهار عناصر التحكم</option>
+        <option value="false">إخفاء عناصر التحكم</option>
+      </select>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelAudio" class="btn-secondary">إلغاء</button>
+        <button id="insertAudio" class="btn-primary">إدراج</button>
       </div>
     </div>
   </div>
