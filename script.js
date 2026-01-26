@@ -1,4 +1,4 @@
-/* script.js — الإصدار النهائي مع جميع الإصلاحات */
+/* script.js — الإصدار النهائي المتكامل */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
@@ -40,7 +40,7 @@ if(typeof marked !== 'undefined') marked.setOptions({
   smartLists:true 
 });
 
-/* FontManager */
+/* FontManager - معدّل للعمل بدون إنترنت */
 const FONT_EXTENSIONS = ['.woff2','.woff','.ttf','.otf'];
 class FontManager {
   constructor(selectEl, importBtn){
@@ -55,10 +55,10 @@ class FontManager {
       this.importBtn.addEventListener('click', ()=>this.pickDirectory());
     }
     else if(this.importBtn) {
-      this.importBtn.addEventListener('click', ()=>notifier.show('استخدم fonts.json أو ضع الملفات في مجلد fonts/','info'));
+      this.importBtn.addEventListener('click', ()=>notifier.show('استخدم fonts.json أو ضع ملفات الخطوط في مجلد fonts/','info'));
     }
     
-    this.scanFonts(); 
+    this.loadDefaultFonts();
     
     if(this.selectEl){
       this.selectEl.addEventListener('change', ()=>{
@@ -67,7 +67,7 @@ class FontManager {
           document.documentElement.style.removeProperty('--app-font');
         }
         else {
-          document.documentElement.style.setProperty('--app-font', `"${v}", 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', system-ui`);
+          document.documentElement.style.setProperty('--app-font', `"${v}", 'Amiri', system-ui`);
         }
         localStorage.setItem('gt-markdawin-font', v);
         notifier.show(`تم تغيير الخط إلى ${v}`, 'success', 1500);
@@ -103,26 +103,13 @@ class FontManager {
     } 
   }
   
-  async scanFonts(){ 
-    try{ 
-      const r = await fetch('fonts.json', {cache:'no-cache'}); 
-      if(r.ok){ 
-        const list = await r.json(); 
-        if(Array.isArray(list) && list.length){ 
-          const fonts = list.map(f=>({name:this.nameFrom(f), url:`fonts/${f}`})); 
-          this.applyFonts(fonts); 
-          return; 
-        } 
-      } 
-    }catch(e){ 
-      console.warn("fonts.json غير متاح"); 
-    } 
-    
-    // إضافة خطوط افتراضية
+  loadDefaultFonts(){ 
+    // خطوط افتراضية تعمل بدون إنترنت
     const defaultFonts = [
-      {name: 'Amiri', value: 'Amiri'},
-      {name: 'Scheherazade', value: 'Scheherazade'},
-      {name: 'Noto Naskh Arabic', value: 'Noto Naskh Arabic'}
+      {name: 'افتراضي النظام', value: '__system__'},
+      {name: 'Amiri (خط عربي)', value: 'Amiri'},
+      {name: 'خط النظام', value: 'system-ui'},
+      {name: 'خط عريض', value: 'Arial'}
     ];
     
     defaultFonts.forEach(font => {
@@ -133,6 +120,31 @@ class FontManager {
         this.selectEl.appendChild(o); 
       }
     });
+    
+    // محاولة تحميل الخطوط المحلية إذا وجدت
+    this.tryLoadLocalFonts();
+  }
+  
+  async tryLoadLocalFonts(){
+    try {
+      const response = await fetch('fonts.json');
+      if(response.ok){
+        const fonts = await response.json();
+        if(Array.isArray(fonts)){
+          fonts.forEach(font => {
+            if(this.selectEl && ![...this.selectEl.options].some(o=>o.value===font)){
+              const option = document.createElement('option');
+              option.value = font;
+              option.textContent = this.nameFrom(font);
+              this.selectEl.appendChild(option);
+            }
+          });
+        }
+      }
+    } catch(e) {
+      // لا بأس إذا لم يوجد ملف fonts.json
+      console.log('ملف fonts.json غير موجود، استخدام الخطوط الافتراضية');
+    }
   }
   
   nameFrom(filename){ 
@@ -168,13 +180,6 @@ class FontManager {
     }); 
     
     if(added) notifier.show(`تم إضافة ${added} خطًا جديدًا`, 'success'); 
-    
-    if(this.selectEl && ![...this.selectEl.options].some(o=>o.value==='__system__')){ 
-      const o=document.createElement('option'); 
-      o.value='__system__'; 
-      o.textContent='افتراضي النظام'; 
-      this.selectEl.prepend(o); 
-    } 
   }
 }
 
@@ -338,7 +343,7 @@ class GTMarkdaWin {
     this.theme='dark';
     this.isEditorSyncing=false; 
     this.isPreviewSyncing=false;
-    this.isSyncEnabled = true; // المزامنة مفعلة افتراضياً
+    this.isSyncEnabled = true;
     this.init();
   }
 
@@ -366,6 +371,7 @@ class GTMarkdaWin {
     this._updatePreview();
     this.updateStats();
     this.updateSyncButton();
+    this.loadLocalLogo();
     notifier.show('GT-MARKDAWIN جاهز للكتابة 🎉','success',1200);
   }
 
@@ -403,7 +409,6 @@ class GTMarkdaWin {
     if($('#exportHtml')) $('#exportHtml').addEventListener('click', ()=>this.exportHTML());
     if($('#exportPdf')) $('#exportPdf').addEventListener('click', ()=>this.exportPDF());
     
-    // إزالة زر togglePreview وإضافة زر syncToggle
     if($('#syncToggle')) $('#syncToggle').addEventListener('click', ()=>this.toggleSync());
     
     if($('#saveBtn')) $('#saveBtn').addEventListener('click', ()=>this.exportMarkdown());
@@ -423,7 +428,7 @@ class GTMarkdaWin {
       if(e.target===m) this.hideModal(m.id); 
     }));
     
-    // sync scroll - مع التحكم بالمزامنة
+    // sync scroll
     if(this.editor) this.editor.addEventListener('scroll', ()=>this.syncScrollEditor());
     if(this.preview) this.preview.addEventListener('scroll', ()=>this.syncScrollPreview());
   }
@@ -564,7 +569,22 @@ class GTMarkdaWin {
     
     // تحميل حالة المزامنة
     const savedSync = localStorage.getItem('gt-markdawin-sync');
-    this.isSyncEnabled = savedSync !== 'false'; // true افتراضي
+    this.isSyncEnabled = savedSync !== 'false';
+  }
+
+  loadLocalLogo() {
+    const logo = document.querySelector('.app-logo');
+    if (logo) {
+      const localLogo = new Image();
+      localLogo.onload = () => {
+        logo.src = 'gt-markdawin-icon.png';
+      };
+      localLogo.onerror = () => {
+        // شعار افتراضي إذا لم توجد الصورة
+        logo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAzNiAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDBDOC4wNiAwIDAgOC4wNiAwIDE4QzAgMjcuOTQgOC4wNiAzNiAxOCAzNkMyNy45NCAzNiAzNiAyNy45NCAzNiAxOEMzNiA4LjA2IDI3Ljk0IDAgMTggMFoiIGZpbGw9IiMzOEEzRkYiLz4KPHBhdGggZD0iTTE4IDI3QzIyLjk3IDI3IDI3IDIyLjk3IDI3IDE4QzI3IDEzLjAzIDIyLjk3IDkgMTggOUMxMy4wMyA5IDkgMTMuMDMgOSAxOEM5IDIyLjk3IDEzLjAzIDI3IDE4IDI3WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE4IDIzQzIwLjc2IDIzIDIzIDIwLjc2IDIzIDE4QzIzIDE1LjI0IDIwLjc2IDEzIDE4IDEzQzE1LjI0IDEzIDEzIDE1LjI0IDEzIDE4QzEzIDIwLjc2IDE1LjI0IDIzIDE4IDIzWiIgZmlsbD0iIzM4QTNGRiIvPgo8L3N2Zz4=';
+      };
+      localLogo.src = 'gt-markdawin-icon.png';
+    }
   }
 
   showModal(id){ 
@@ -760,7 +780,6 @@ class GTMarkdaWin {
 
   getMoroccanDate() {
     const now = new Date();
-    // توقيت المغرب (UTC+1)
     const moroccoTime = new Date(now.getTime() + (1 * 60 * 60 * 1000));
     
     const year = moroccoTime.getFullYear();
@@ -777,22 +796,19 @@ class GTMarkdaWin {
     const moroccoTime = new Date(now.getTime() + (1 * 60 * 60 * 1000));
     
     const options = {
-      timeZone: 'Africa/Casablanca',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      weekday: 'long',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
     };
     
-    return new Intl.DateTimeFormat('ar-MA', options).format(moroccoTime);
+    return new Intl.DateTimeFormat('ar', options).format(moroccoTime);
   }
 
   /* exportPDF - مضمون مع توقيت المغرب */
   async exportPDF() {
-    // تحديث المعاينة أولاً
     this._updatePreview();
     
     if (!this.preview || !this.preview.innerHTML.trim() || 
@@ -804,26 +820,18 @@ class GTMarkdaWin {
     notifier.show('جارٍ تحضير PDF...', 'info', 2000);
 
     try {
-      // استخدام توقيت المغرب
       const printDate = this.getMoroccanDateFormatted();
-      
-      const currentFont = document.documentElement.style.getPropertyValue('--app-font') || 
-                         'Amiri, Scheherazade, Noto Naskh Arabic, system-ui';
-      
+      const currentFont = document.documentElement.style.getPropertyValue('--app-font') || 'Amiri, system-ui';
       const currentDir = document.body.getAttribute('dir') || 'rtl';
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
       
-      // محتوى HTML كامل مع أنماط PDF محسنة
       const printContent = `
 <!DOCTYPE html>
 <html dir="${currentDir}" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GT-MARKDAWIN - ${printDate.split('،')[0]}</title>
+    <title>GT-MARKDAWIN - ${printDate}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
-        
         * {
             margin: 0;
             padding: 0;
@@ -878,7 +886,6 @@ class GTMarkdaWin {
             color: #2c3e50;
             margin: 25px 0 15px 0;
             font-weight: 700;
-            page-break-after: avoid;
         }
         
         h1 { font-size: 24pt; }
@@ -897,10 +904,6 @@ class GTMarkdaWin {
         a {
             color: #3498db;
             text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
         }
         
         ul, ol {
@@ -941,7 +944,6 @@ class GTMarkdaWin {
             font-size: 12pt;
             line-height: 1.6;
             white-space: pre-wrap;
-            word-wrap: break-word;
         }
         
         table {
@@ -969,7 +971,6 @@ class GTMarkdaWin {
             display: block;
             margin: 15px auto;
             border-radius: 6px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
         
         hr {
@@ -986,29 +987,12 @@ class GTMarkdaWin {
             color: #7f8c8d;
             font-size: 10pt;
         }
-        
-        @media print {
-            @page {
-                size: A4;
-                margin: 25mm;
-            }
-            
-            body {
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .page-break {
-                page-break-before: always;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>📝 GT-MARKDAWIN</h1>
-        <div class="subtitle">محرر ماركداون عربي عصري</div>
+        <div class="subtitle">مارك دَوِّنْ محرر عربي عصري</div>
     </div>
     
     <div class="meta-info">
@@ -1031,21 +1015,14 @@ class GTMarkdaWin {
 </body>
 </html>`;
       
-      // إنشاء نافذة طباعة
       const printWindow = window.open('', '_blank');
-      
-      // كتابة المحتوى إلى النافذة
       printWindow.document.open();
       printWindow.document.write(printContent);
       printWindow.document.close();
       
-      // انتظار تحميل الخطوط والصور
       printWindow.onload = () => {
         setTimeout(() => {
-          // طباعة النافذة
           printWindow.print();
-          
-          // إغلاق النافذة بعد الطباعة
           setTimeout(() => {
             printWindow.close();
           }, 1000);
@@ -1056,7 +1033,7 @@ class GTMarkdaWin {
       
     } catch (error) {
       console.error('فشل تصدير PDF:', error);
-      notifier.show('❌ فشل في تصدير PDF. حاول استخدام الطباعة من المتصفح مباشرة.', 'error', 4000);
+      notifier.show('❌ فشل في تصدير PDF. حاول استخدام الطباعة من المتصفح.', 'error', 4000);
     }
   }
 
