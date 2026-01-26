@@ -1,4 +1,4 @@
-/* script.js — الإصدار النهائي المتكامل */
+/* script.js — الإصدار 2.0 المتكامل */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
@@ -37,7 +37,8 @@ if(typeof marked !== 'undefined') marked.setOptions({
   breaks:true, 
   headerIds:true, 
   mangle:false, 
-  smartLists:true 
+  smartLists:true,
+  smartypants: true
 });
 
 /* FontManager - معدّل للعمل بدون إنترنت */
@@ -183,7 +184,7 @@ class FontManager {
   }
 }
 
-/* EmojiManager */
+/* EmojiManager - مع أعلام الدول */
 class EmojiManager {
   constructor(panelEl, toggleBtn){
     this.panel = panelEl; 
@@ -209,6 +210,10 @@ class EmojiManager {
       this.panel.style.top = `${top}px`; 
       this.panel.style.left = `${left}px`; 
       this.panel.style.zIndex = '9999';
+      
+      if(!this.panel.classList.contains('hidden')) {
+        this.loadEmojisWithFlags();
+      }
     });
     
     document.addEventListener('click', e=>{ 
@@ -218,11 +223,9 @@ class EmojiManager {
         this.panel.classList.add('hidden'); 
       } 
     });
-    
-    this.loadStaticEmojis();
   }
   
-  loadStaticEmojis(){
+  loadEmojisWithFlags(){
     const staticEmojis = [
       '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇',
       '🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
@@ -248,7 +251,31 @@ class EmojiManager {
       '📁','📂','🔍','🛸','👾','🕹️','🐪','🌴','🌯','🥙',
       '🥘','🍲','🥗','🍯','🫖','👳','🧕','🏰','🏜️','🧿',
       '🪔','🏙️','🌃','🏺','🫠','🫢','🫣','🫡','🫥','🫤',
-      '🥹','🚀'
+      '🥹','🚀','🌍','🗺️','🗾','🏔️','⛰️','🌋','🗻','🏕️',
+      '🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🏗️','🏘️','🏙️','🏚️',
+      '🕌','🛕','🕍','⛩️','🕋','🏢','🏬','🏣','🏤','🏥',
+      '🏦','🏨','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🕍',
+      // أعلام الدول العربية والإسلامية
+      '🇸🇦','🇦🇪','🇶🇦','🇰🇼','🇧🇭','🇴🇲','🇾🇪','🇮🇶','🇯🇴',
+      '🇱🇧','🇸🇾','🇵🇸','🇲🇦','🇩🇿','🇹🇳','🇱🇾','🇸🇩','🇪🇬',
+      '🇸🇴','🇩🇯','🇰🇲','🇲🇷','🇹🇷','🇵🇰','🇦🇫','🇮🇷','🇦🇿',
+      '🇹🇲','🇺🇿','🇰🇿','🇰🇬','🇹🇯','🇸🇳','🇳🇪','🇲🇱','🇬🇳',
+      '🇨🇮','🇧🇫','🇹🇬','🇧🇯','🇲🇺','🇲🇷','🇸🇸','🇪🇷','🇩🇿',
+      '🇲🇦','🇹🇳','🇱🇾','🇸🇩','🇪🇹','🇸🇴','🇩🇯','🇰🇪','🇹🇿',
+      '🇺🇬','🇷🇼','🇧🇮','🇨🇩','🇨🇬','🇨🇲','🇬🇦','🇬🇶','🇬🇼',
+      '🇸🇹','🇲🇿','🇲🇼','🇿🇲','🇿🇼','🇳🇦','🇧🇼','🇱🇸','🇸🇿',
+      '🇲🇺','🇸🇨','🇰🇲','🇲🇻','🇲🇷','🇸🇳','🇬🇲','🇬🇼','🇬🇳',
+      '🇸🇱','🇱🇷','🇨🇮','🇬🇭','🇳🇬','🇹🇬','🇧🇯','🇳🇪','🇧🇫',
+      '🇲🇱','🇨🇫','🇹🇩','🇪🇷','🇩🇯','🇸🇴','🇰🇪','🇺🇬','🇷🇼',
+      '🇧🇮','🇨🇩','🇨🇬','🇨🇲','🇬🇦','🇬🇶','🇸🇹','🇲🇿','🇲🇼',
+      '🇿🇲','🇿🇼','🇳🇦','🇧🇼','🇱🇸','🇸🇿','🇸🇨','🇲🇻','🇰🇲',
+      // رموز إسلامية
+      '☪️','🕋','🕌','🕍','📿','🕯️','📖','🕌','🕋','☪️',
+      '🕌','🕋','📿','🕯️','📖','🕌','🕋','☪️','🕌','🕋',
+      '📿','🕯️','📖','🕌','🕋','☪️','🕌','🕋','📿','🕯️',
+      '📖','🕌','🕋','☪️','🕌','🕋','📿','🕯️','📖','🕌',
+      '🕋','☪️','🕌','🕋','📿','🕯️','📖','🕌','🕋','☪️',
+      '🕌','🕋','📿','🕯️','📖','🕌','🕋','☪️','🕌','🕋'
     ];
     
     this.apply(staticEmojis);
@@ -266,10 +293,10 @@ class EmojiManager {
     grid.className = 'emoji-grid';
     grid.style.cssText = `
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
       gap: 6px;
       padding: 12px;
-      max-height: 250px;
+      max-height: 300px;
       overflow-y: auto;
     `;
     
@@ -284,11 +311,11 @@ class EmojiManager {
         background: transparent;
         cursor: pointer;
         font-size: 1.4rem;
-        padding: 5px;
+        padding: 6px;
         border-radius: 8px;
         transition: all 0.2s;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -330,7 +357,7 @@ function insertAtCursor(text){
   ta.dispatchEvent(new Event('input',{bubbles:true}));
 }
 
-/* GTMarkdaWin application */
+/* GTMarkdaWin application v2.0 */
 class GTMarkdaWin {
   constructor(){
     this.editor = $('#editor'); 
@@ -344,6 +371,9 @@ class GTMarkdaWin {
     this.isEditorSyncing=false; 
     this.isPreviewSyncing=false;
     this.isSyncEnabled = true;
+    this.history = [];
+    this.historyIndex = -1;
+    this.maxHistorySize = 50;
     this.init();
   }
 
@@ -368,11 +398,12 @@ class GTMarkdaWin {
     this.loadSaved();
     this.updatePreview = this._debounce(()=>this._updatePreview(), 180);
     this.saveToStorage = this._debounce(()=>this._saveToStorage(), 300);
+    this.saveToHistory = this._debounce(()=>this._saveToHistory(), 500);
     this._updatePreview();
     this.updateStats();
     this.updateSyncButton();
     this.loadLocalLogo();
-    notifier.show('GT-MARKDAWIN جاهز للكتابة 🎉','success',1200);
+    notifier.show('GT-MARKDAWIN v2.0 جاهز للكتابة 🎉','success',1200);
   }
 
   bindUI(){
@@ -382,10 +413,28 @@ class GTMarkdaWin {
       this.editor.addEventListener('input', ()=>{ 
         this.updatePreview(); 
         this.saveToStorage(); 
+        this.saveToHistory();
         this.updateStats(); 
       });
       
       this.editor.addEventListener('keydown', (e)=>{
+        // تراجع وإعادة
+        if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){
+          if(!e.shiftKey) {
+            e.preventDefault();
+            this.undo();
+          }
+        }
+        if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='z'){
+          e.preventDefault();
+          this.redo();
+        }
+        if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){
+          e.preventDefault();
+          this.redo();
+        }
+        
+        // اختصارات أخرى
         if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='b'){ 
           e.preventDefault(); 
           this.executeCommand('bold'); 
@@ -412,13 +461,25 @@ class GTMarkdaWin {
     if($('#syncToggle')) $('#syncToggle').addEventListener('click', ()=>this.toggleSync());
     
     if($('#saveBtn')) $('#saveBtn').addEventListener('click', ()=>this.exportMarkdown());
-    if($('#loadBtn')) $('#loadBtn').addEventListener('click', ()=>this.importFile());
+    if($('#loadBtn')) $('#loadBtn').addEventListener('click', ()=>this.importFileToPreview());
+    
+    // تراجع وإعادة
+    if($('#undoBtn')) $('#undoBtn').addEventListener('click', ()=>this.undo());
+    if($('#redoBtn')) $('#redoBtn').addEventListener('click', ()=>this.redo());
     
     // modals
     if($('#insertLink')) $('#insertLink').addEventListener('click', ()=>this.insertLink());
     if($('#cancelLink')) $('#cancelLink').addEventListener('click', ()=>this.hideModal('linkModal'));
     if($('#insertImage')) $('#insertImage').addEventListener('click', ()=>this.insertImage());
     if($('#cancelImage')) $('#cancelImage').addEventListener('click', ()=>this.hideModal('imageModal'));
+    if($('#insertVideo')) $('#insertVideo').addEventListener('click', ()=>this.insertVideo());
+    if($('#cancelVideo')) $('#cancelVideo').addEventListener('click', ()=>this.hideModal('videoModal'));
+    if($('#insertGif')) $('#insertGif').addEventListener('click', ()=>this.insertGif());
+    if($('#cancelGif')) $('#cancelGif').addEventListener('click', ()=>this.hideModal('gifModal'));
+    if($('#insertMath')) $('#insertMath').addEventListener('click', ()=>this.insertMath());
+    if($('#cancelMath')) $('#cancelMath').addEventListener('click', ()=>this.hideModal('mathModal'));
+    if($('#insertFootnote')) $('#insertFootnote').addEventListener('click', ()=>this.insertFootnote());
+    if($('#cancelFootnote')) $('#cancelFootnote').addEventListener('click', ()=>this.hideModal('footnoteModal'));
     
     // focus buttons
     if($('#focusEditorBtn')) $('#focusEditorBtn').addEventListener('click', ()=>this.toggleFocus('editor'));
@@ -471,8 +532,11 @@ class GTMarkdaWin {
     };
     
     switch(cmd){
+      case 'undo': this.undo(); break;
+      case 'redo': this.redo(); break;
       case 'bold': wrap('**','**'); break;
       case 'italic': wrap('*','*'); break;
+      case 'strikethrough': wrap('~~','~~'); break;
       case 'code': wrap('`','`'); break;
       case 'codeblock': wrap('\n```\n','\n```\n'); break;
       case 'blockquote': prefixLine('> '); break;
@@ -490,9 +554,19 @@ class GTMarkdaWin {
         insertAtCursor('\n\n| ترويسة 1 | ترويسة 2 | ترويسة 3 |\n| :--- | :---: | ---: |\n| محتوى 1 | محتوى 2 | محتوى 3 |\n'); break;
       case 'link': this.showModal('linkModal'); break;
       case 'image': this.showModal('imageModal'); break;
+      case 'video': this.showModal('videoModal'); break;
+      case 'audio': this.showModal('audioModal'); break;
+      case 'gif': this.showModal('gifModal'); break;
+      case 'math': this.showModal('mathModal'); break;
+      case 'footnote': this.showModal('footnoteModal'); break;
+      case 'definition': 
+        insertAtCursor('\n\n<dl>\n  <dt>مصطلح</dt>\n  <dd>تعريف المصطلح هنا</dd>\n</dl>\n'); 
+        break;
       case 'align-left': align('left'); break;
       case 'align-center': align('center'); break;
       case 'align-right': align('right'); break;
+      case 'superscript': wrap('<sup>','</sup>'); break;
+      case 'subscript': wrap('<sub>','</sub>'); break;
       default: break;
     }
   }
@@ -504,7 +578,15 @@ class GTMarkdaWin {
       return; 
     } 
     try{ 
-      this.preview.innerHTML = marked.parse(md); 
+      let html = marked.parse(md);
+      
+      // تطبيق اتجاه النص على المعاينة
+      const dir = document.body.getAttribute('dir') || 'rtl';
+      this.preview.setAttribute('dir', dir);
+      this.preview.style.direction = dir;
+      this.preview.style.textAlign = dir === 'rtl' ? 'right' : 'left';
+      
+      this.preview.innerHTML = html; 
     }catch(e){ 
       this.preview.innerHTML = '<p class="preview-error">⚠️ خطأ في تحويل الماركداون</p>'; 
       console.error(e); 
@@ -524,19 +606,65 @@ class GTMarkdaWin {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
     const lines = text.split(/\n/).length;
+    const dir = document.body.getAttribute('dir') || 'rtl';
     
     $('#wordCount').textContent = `الكلمات: ${words}`; 
     $('#charCount').textContent = `الحروف: ${chars}`; 
     $('#lineCount').textContent = `السطور: ${lines}`; 
+    $('#currentDir').textContent = `الاتجاه: ${dir.toUpperCase()}`;
   }
 
   _saveToStorage(){ 
     localStorage.setItem('gt-markdawin-content', this.editor.value); 
   }
 
+  _saveToHistory(){
+    const currentContent = this.editor.value;
+    
+    // تجنب حفظ المحتوى المتكرر
+    if(this.history[this.historyIndex] === currentContent) return;
+    
+    // إذا كنا في منتصف السجل، قم بقص نهاية السجل
+    if(this.historyIndex < this.history.length - 1) {
+      this.history = this.history.slice(0, this.historyIndex + 1);
+    }
+    
+    // إضافة المحتوى الحالي إلى السجل
+    this.history.push(currentContent);
+    this.historyIndex++;
+    
+    // الحفاظ على حجم السجل
+    if(this.history.length > this.maxHistorySize) {
+      this.history.shift();
+      this.historyIndex--;
+    }
+  }
+
+  undo(){
+    if(this.historyIndex > 0) {
+      this.historyIndex--;
+      this.editor.value = this.history[this.historyIndex];
+      this.editor.dispatchEvent(new Event('input', {bubbles: true}));
+      notifier.show('تم التراجع', 'info', 1000);
+    }
+  }
+
+  redo(){
+    if(this.historyIndex < this.history.length - 1) {
+      this.historyIndex++;
+      this.editor.value = this.history[this.historyIndex];
+      this.editor.dispatchEvent(new Event('input', {bubbles: true}));
+      notifier.show('تم الإعادة', 'info', 1000);
+    }
+  }
+
   loadSaved(){
     const s = localStorage.getItem('gt-markdawin-content'); 
-    if(s && this.editor) this.editor.value = s;
+    if(s && this.editor) {
+      this.editor.value = s;
+      this.history = [s];
+      this.historyIndex = 0;
+    }
     
     const savedTheme = localStorage.getItem('gt-markdawin-theme'); 
     if(savedTheme) this.theme=savedTheme; 
@@ -560,11 +688,21 @@ class GTMarkdaWin {
       document.documentElement.setAttribute('dir', savedDir); 
       document.body.setAttribute('dir', savedDir); 
       if(this.editor) this.editor.setAttribute('dir', savedDir); 
+      if(this.preview) {
+        this.preview.setAttribute('dir', savedDir);
+        this.preview.style.direction = savedDir;
+        this.preview.style.textAlign = savedDir === 'rtl' ? 'right' : 'left';
+      }
     } else { 
       const defaultDir = document.documentElement.getAttribute('dir') || 'rtl';
       document.documentElement.setAttribute('dir', defaultDir); 
       document.body.setAttribute('dir', defaultDir); 
       if(this.editor) this.editor.setAttribute('dir', defaultDir); 
+      if(this.preview) {
+        this.preview.setAttribute('dir', defaultDir);
+        this.preview.style.direction = defaultDir;
+        this.preview.style.textAlign = defaultDir === 'rtl' ? 'right' : 'left';
+      }
     }
     
     // تحميل حالة المزامنة
@@ -591,7 +729,7 @@ class GTMarkdaWin {
     const el=$(`#${id}`); 
     if(!el) return; 
     el.classList.remove('hidden'); 
-    const input = el.querySelector('input'); 
+    const input = el.querySelector('input, textarea, select'); 
     if(input) input.focus(); 
   }
   
@@ -604,10 +742,14 @@ class GTMarkdaWin {
   insertLink(){ 
     const text = $('#linkText').value || 'نص الرابط'; 
     const url = $('#linkUrl').value; 
+    const title = $('#linkTitle').value;
+    
     if(url){ 
-      insertAtCursor(`[${text}](${url})`); 
+      const titleAttr = title ? ` "${title}"` : '';
+      insertAtCursor(`[${text}](${url}${titleAttr})`); 
       $('#linkText').value=''; 
       $('#linkUrl').value=''; 
+      $('#linkTitle').value=''; 
       this.hideModal('linkModal'); 
       this.updatePreview(); 
       notifier.show('تم إدراج الرابط', 'success'); 
@@ -619,15 +761,109 @@ class GTMarkdaWin {
   insertImage(){ 
     const alt = $('#imageAlt').value || 'نص بديل'; 
     const url = $('#imageUrl').value; 
+    const title = $('#imageTitle').value;
+    
     if(url){ 
-      insertAtCursor(`![${alt}](${url})`); 
+      const titleAttr = title ? ` "${title}"` : '';
+      insertAtCursor(`![${alt}](${url}${titleAttr})`); 
       $('#imageAlt').value=''; 
       $('#imageUrl').value=''; 
+      $('#imageTitle').value=''; 
       this.hideModal('imageModal'); 
       this.updatePreview(); 
       notifier.show('تم إدراج الصورة', 'success'); 
     } else {
       notifier.show('الرجاء إدخال رابط الصورة','error'); 
+    }
+  }
+
+  insertVideo(){ 
+    const url = $('#videoUrl').value; 
+    const title = $('#videoTitle').value;
+    const width = $('#videoWidth').value || 560;
+    const height = $('#videoHeight').value || 315;
+    
+    if(url){ 
+      const videoHtml = `<div class="video-container"><iframe width="${width}" height="${height}" src="${url}" title="${title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      insertAtCursor(`\n\n${videoHtml}\n\n`); 
+      $('#videoUrl').value=''; 
+      $('#videoTitle').value=''; 
+      $('#videoWidth').value='560'; 
+      $('#videoHeight').value='315'; 
+      this.hideModal('videoModal'); 
+      this.updatePreview(); 
+      notifier.show('تم إدراج الفيديو', 'success'); 
+    } else {
+      notifier.show('الرجاء إدخال رابط الفيديو','error'); 
+    }
+  }
+
+  insertGif(){ 
+    const url = $('#gifUrl').value; 
+    const alt = $('#gifAlt').value || 'صورة متحركة';
+    
+    if(url){ 
+      insertAtCursor(`![${alt}](${url})`); 
+      $('#gifUrl').value=''; 
+      $('#gifAlt').value=''; 
+      this.hideModal('gifModal'); 
+      this.updatePreview(); 
+      notifier.show('تم إدراج الصورة المتحركة', 'success'); 
+    } else {
+      notifier.show('الرجاء إدخال رابط GIF','error'); 
+    }
+  }
+
+  insertMath(){ 
+    const equation = $('#mathEquation').value; 
+    const type = $('#mathType').value;
+    
+    if(equation){ 
+      if(type === 'inline'){
+        insertAtCursor(`$${equation}$`); 
+      } else {
+        insertAtCursor(`$$\n${equation}\n$$`); 
+      }
+      $('#mathEquation').value=''; 
+      $('#mathType').value='inline'; 
+      this.hideModal('mathModal'); 
+      this.updatePreview(); 
+      notifier.show('تم إدراج المعادلة الرياضية', 'success'); 
+    } else {
+      notifier.show('الرجاء إدخال معادلة','error'); 
+    }
+  }
+
+  insertFootnote(){ 
+    const id = $('#footnoteId').value || '1'; 
+    const text = $('#footnoteText').value;
+    
+    if(text){ 
+      insertAtCursor(`[^${id}]`); 
+      
+      // البحث عن الهوامش وإضافة الهامش الجديد
+      const editorContent = this.editor.value;
+      const footnotesMatch = editorContent.match(/\[\^(\d+)\]:/g);
+      let maxId = 0;
+      
+      if(footnotesMatch) {
+        footnotesMatch.forEach(fn => {
+          const fnId = parseInt(fn.match(/\[\^(\d+)\]/)[1]);
+          if(fnId > maxId) maxId = fnId;
+        });
+      }
+      
+      // إضافة الهامش في نهاية المستند
+      const newFootnote = `\n[^${id}]: ${text}`;
+      this.editor.value += newFootnote;
+      
+      $('#footnoteId').value=''; 
+      $('#footnoteText').value=''; 
+      this.hideModal('footnoteModal'); 
+      this.updatePreview(); 
+      notifier.show('تم إدراج الهامش', 'success'); 
+    } else {
+      notifier.show('الرجاء إدخال نص الهامش','error'); 
     }
   }
 
@@ -653,10 +889,19 @@ class GTMarkdaWin {
   toggleDirection(){ 
     const cur = document.body.getAttribute('dir') || document.documentElement.getAttribute('dir') || 'rtl'; 
     const next = cur === 'rtl' ? 'ltr' : 'rtl'; 
+    
+    // تطبيق على جميع العناصر
     document.documentElement.setAttribute('dir', next); 
     document.body.setAttribute('dir', next); 
     if(this.editor) this.editor.setAttribute('dir', next); 
+    if(this.preview) {
+      this.preview.setAttribute('dir', next);
+      this.preview.style.direction = next;
+      this.preview.style.textAlign = next === 'rtl' ? 'right' : 'left';
+    }
+    
     localStorage.setItem('gt-markdawin-dir', next); 
+    this.updateStats();
     notifier.show(`اتجاه النص: ${next === 'rtl' ? 'يمين إلى يسار' : 'يسار إلى يمين'}`,'success',1200); 
   }
 
@@ -755,6 +1000,34 @@ class GTMarkdaWin {
     input.click(); 
   }
 
+  importFileToPreview(){ 
+    const input=document.createElement('input'); 
+    input.type='file'; 
+    input.accept='.html,.htm,.md,.txt,.markdown'; 
+    input.onchange=(e)=>{ 
+      const f=e.target.files[0]; 
+      if(f){ 
+        const r=new FileReader(); 
+        r.onload=(ev)=>{ 
+          const content = ev.target.result;
+          
+          if(f.name.endsWith('.html') || f.name.endsWith('.htm')) {
+            // عرض HTML مباشرة في المعاينة
+            this.preview.innerHTML = content;
+          } else {
+            // عرض Markdown كمحتوى تحريري
+            this.editor.value = content;
+            this.editor.dispatchEvent(new Event('input',{bubbles:true}));
+          }
+          
+          notifier.show(`تم فتح ${f.name} في المعاينة`,'success'); 
+        }; 
+        r.readAsText(f); 
+      } 
+    }; 
+    input.click(); 
+  }
+
   _download(filename, text, type){ 
     const a=document.createElement('a'); 
     a.setAttribute('href', `data:${type};charset=utf-8,${encodeURIComponent(text)}`); 
@@ -773,9 +1046,119 @@ class GTMarkdaWin {
   
   exportHTML(){ 
     const content=this.preview.innerHTML; 
-    const fullHtml=`<!doctype html><html lang="ar" dir="${document.body.getAttribute('dir')||'rtl'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مستند GT-MARKDAWIN</title></head><body>${content}</body></html>`; 
+    const fullHtml=`<!doctype html><html lang="ar" dir="${document.body.getAttribute('dir')||'rtl'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مستند GT-MARKDAWIN</title><style>${this.getPreviewStyles()}</style></head><body>${content}</body></html>`; 
     const filename = `مستند-${this.getMoroccanDate()}.html`;
     this._download(filename, fullHtml, 'text/html'); 
+  }
+
+  getPreviewStyles() {
+    return `
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif;
+        direction: ${document.body.getAttribute('dir') || 'rtl'};
+        line-height: 1.8;
+        color: #000;
+        background: #fff;
+        padding: 25mm;
+        font-size: 14pt;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        color: #2c3e50;
+        margin: 25px 0 15px 0;
+        font-weight: 700;
+      }
+      
+      p {
+        margin: 15px 0;
+        text-align: justify;
+        line-height: 1.9;
+      }
+      
+      a {
+        color: #3498db;
+        text-decoration: none;
+      }
+      
+      ul, ol {
+        margin: 15px 0;
+        padding-right: 30px;
+      }
+      
+      li {
+        margin: 8px 0;
+        line-height: 1.8;
+      }
+      
+      blockquote {
+        border-right: 4px solid #38a3ff;
+        padding: 15px 20px;
+        margin: 20px 0;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-style: italic;
+      }
+      
+      code {
+        font-family: 'Courier New', monospace;
+        background: #f1f3f4;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12pt;
+      }
+      
+      pre {
+        font-family: 'Courier New', monospace;
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 20px 0;
+        font-size: 12pt;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 12pt;
+      }
+      
+      th, td {
+        border: 1px solid #ddd;
+        padding: 10px 12px;
+        text-align: ${document.body.getAttribute('dir') === 'rtl' ? 'right' : 'left'};
+      }
+      
+      th {
+        background: #f8f9fa;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+      
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 15px auto;
+        border-radius: 6px;
+      }
+      
+      hr {
+        border: none;
+        border-top: 2px solid #eee;
+        margin: 30px 0;
+      }
+    `;
   }
 
   getMoroccanDate() {
@@ -991,7 +1374,7 @@ class GTMarkdaWin {
 </head>
 <body>
     <div class="header">
-        <h1>📝 GT-MARKDAWIN</h1>
+        <h1>📝 GT-MARKDAWIN v2.0</h1>
         <div class="subtitle">مارك دَوِّنْ محرر عربي عصري</div>
     </div>
     
@@ -1009,7 +1392,7 @@ class GTMarkdaWin {
     </div>
     
     <div class="footer">
-        <p>تم إنشاء هذا المستند بواسطة GT-MARKDAWIN</p>
+        <p>تم إنشاء هذا المستند بواسطة GT-MARKDAWIN v2.0</p>
         <p>${printDate}</p>
     </div>
 </body>
