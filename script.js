@@ -1,4 +1,4 @@
-/* script.js — الإصدار 2.0 المتكامل مع إصلاحات */
+/* script.js — الإصدار 2.0 مع Ubuntu Arabic كخط افتراضي */
 const $ = sel => document.querySelector(sel);
 const $all = sel => Array.from(document.querySelectorAll(sel));
 
@@ -41,14 +41,15 @@ if(typeof marked !== 'undefined') marked.setOptions({
   smartypants: true
 });
 
-/* FontManager - معدّل مع دعم الخطوط المباشر */
+/* FontManager - مع Ubuntu Arabic كخط افتراضي */
 const FONT_EXTENSIONS = ['.woff2','.woff','.ttf','.otf'];
 class FontManager {
   constructor(selectEl, importBtn){
     this.selectEl = selectEl; 
     this.importBtn = importBtn; 
     this.loaded = new Map(); 
-    this.fonts = new Map(); // خريطة لتخزين معلومات الخطوط
+    this.fonts = new Map();
+    this.defaultFont = 'Ubuntu Arabic';
     this.init();
   }
   
@@ -78,36 +79,38 @@ class FontManager {
         notifier.show(`تم تغيير الخط إلى ${displayName}`, 'success', 1500);
       });
       
-      // تطبيق الخط المحفوظ
+      // تطبيق الخط المحفوظ أو الافتراضي
       const saved = localStorage.getItem('gt-markdawin-font');
-      if(saved) {
+      if(saved && [...this.selectEl.options].some(o=>o.value===saved)) { 
         setTimeout(()=>{ 
-          if([...this.selectEl.options].some(o=>o.value===saved)) { 
-            this.selectEl.value=saved; 
-            this.applyFont(saved);
-          } 
+          this.selectEl.value = saved; 
+          this.applyFont(saved);
         }, 800);
       } else {
-        // تطبيق الخط الافتراضي
-        this.applyFont('__system__');
+        // تطبيق Ubuntu Arabic كافتراضي
+        setTimeout(()=>{ 
+          this.selectEl.value = this.defaultFont;
+          this.applyFont(this.defaultFont);
+          localStorage.setItem('gt-markdawin-font', this.defaultFont);
+        }, 800);
       }
     }
   }
   
   loadEmbeddedFonts() {
-    // الخطوط المضمنة في HTML (تم تعريفها مسبقاً)
+    // الخطوط المضمنة في HTML
     const embeddedFonts = [
+      {name: 'Ubuntu Arabic', value: 'Ubuntu Arabic', display: 'Ubuntu Arabic (افتراضي)'},
       {name: 'Amiri Quran', value: 'Amiri Quran', display: 'Amiri Quran (خط قرآني)'},
       {name: 'Amiri Quran Colored', value: 'Amiri Quran Colored', display: 'Amiri Quran Colored (ملون)'},
       {name: 'Uthmanic Hafs', value: 'Uthmanic Hafs', display: 'Uthmanic Hafs (عثماني)'},
       {name: 'Arslan Wessam A', value: 'Arslan Wessam A', display: 'Arslan Wessam A (أسلان)'},
       {name: 'Noto Sans Arabic', value: 'Noto Sans Arabic', display: 'Noto Sans Arabic'},
       {name: 'Noto Sans Arabic Thin', value: 'Noto Sans Arabic Thin', display: 'Noto Sans Arabic Thin'},
-      {name: 'Ubuntu Arabic', value: 'Ubuntu Arabic', display: 'Ubuntu Arabic'},
       {name: 'Ubuntu Arabic Bold', value: 'Ubuntu Arabic Bold', display: 'Ubuntu Arabic Bold'},
       {name: 'Arial', value: 'Arial', display: 'Arial'},
-      {name: 'system-ui', value: 'system-ui', display: 'خط النظام'},
-      {name: 'افتراضي النظام', value: '__system__', display: 'افتراضي النظام'}
+      {name: 'خط النظام', value: 'system-ui', display: 'خط النظام'},
+      {name: 'افتراضي النظام', value: '__system__', display: 'افتراضي النظام (Ubuntu Arabic)'}
     ];
     
     embeddedFonts.forEach(font => {
@@ -155,24 +158,31 @@ class FontManager {
   
   applyFont(fontName){
     if(fontName === '__system__') {
-      document.documentElement.style.removeProperty('--app-font');
-      document.body.style.fontFamily = '';
-      if(this.preview) {
-        this.preview.style.fontFamily = '';
+      // عند استخدام النظام، نستخدم Ubuntu Arabic كافتراضي
+      const defaultFont = "'Ubuntu Arabic', 'Amiri Quran', system-ui";
+      document.documentElement.style.setProperty('--app-font', defaultFont);
+      document.body.style.fontFamily = defaultFont;
+      
+      // تحديث المعاينة
+      const preview = $('#preview');
+      if(preview) {
+        preview.style.fontFamily = defaultFont;
       }
     } else if(fontName === 'system-ui') {
-      const systemFonts = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const systemFonts = "'Ubuntu Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       document.documentElement.style.setProperty('--app-font', systemFonts);
       document.body.style.fontFamily = systemFonts;
-      if(this.preview) {
-        this.preview.style.fontFamily = systemFonts;
+      
+      const preview = $('#preview');
+      if(preview) {
+        preview.style.fontFamily = systemFonts;
       }
     } else {
-      const fontFamily = `"${fontName}", 'Amiri Quran', 'Uthmanic Hafs', system-ui`;
+      const fontFamily = `"${fontName}", 'Ubuntu Arabic', 'Amiri Quran', 'Uthmanic Hafs', system-ui`;
       document.documentElement.style.setProperty('--app-font', fontFamily);
       document.body.style.fontFamily = fontFamily;
       
-      // تحديث المعاينة أيضاً
+      // تحديث المعاينة
       const preview = $('#preview');
       if(preview) {
         preview.style.fontFamily = fontFamily;
@@ -181,7 +191,6 @@ class FontManager {
       // تحديث المحرر
       const editor = $('#editor');
       if(editor) {
-        // للمحرر نستخدم خط monospace للكود
         editor.style.fontFamily = `${fontFamily}, 'Cascadia Code', 'Fira Code', monospace`;
       }
     }
@@ -654,7 +663,7 @@ class GTMarkdaWin {
       this.preview.style.textAlign = dir === 'rtl' ? 'right' : 'left';
       
       // تطبيق الخط الحالي على المعاينة
-      const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
+      const currentFont = document.body.style.fontFamily || "'Ubuntu Arabic', 'Amiri Quran', system-ui";
       this.preview.style.fontFamily = currentFont;
       
       this.preview.innerHTML = html; 
@@ -755,10 +764,16 @@ class GTMarkdaWin {
         } 
       },800);
     } else {
-      // تطبيق الخط الافتراضي
-      if(this.fontManager) {
-        this.fontManager.applyFont('__system__');
-      }
+      // تطبيق Ubuntu Arabic كافتراضي
+      setTimeout(()=>{ 
+        if(this.fontManager) {
+          this.fontManager.applyFont('Ubuntu Arabic');
+        }
+        if(this.fontSelector) {
+          this.fontSelector.value = 'Ubuntu Arabic';
+        }
+        localStorage.setItem('gt-markdawin-font', 'Ubuntu Arabic');
+      },800);
     }
     
     const savedDir = localStorage.getItem('gt-markdawin-dir'); 
@@ -796,8 +811,7 @@ class GTMarkdaWin {
         logo.src = 'gt-markdawin-icon.png';
       };
       localLogo.onerror = () => {
-        // شعار افتراضي إذا لم توجد الصورة
-        logo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAzNiAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDBDOC4wNiAwIDAgOC4wNiAwIDE4QzAgMjcuOTQgOC4wNiAzNiAxOCAzNkMyNy45NCAzNiAzNiAyNy45NCAzNiAxOEMzNiA4LjA2IDI3Ljk0IDAgMTggMFoiIGZpbGw9IiMzOEEzRkYiLz4KPHBhdGggZD0iTTE4IDI3QzIyLjk3IDI3IDI3IDIyLjk3IDI3IDE4QzI3IDEzLjAzIDIyLjk3IDkgMTggOUMxMy4wMyA5IDkgMTMuMDMgOSAxOEM5IDIyLjk3IDEzLjAzIDI3IDE4IDI3WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE4IDIzQzIwLjc2IDIzIDIzIDIwLjc2IDIzIDE4QzIzIDE1LjI0IDIwLjc2IDEzIDE4IDEzQzE1LjI0IDEzIDEzIDE1LjI0IDEzIDE4QzEzIDIwLjc2IDE1LjI0IDIzIDE4IDIzWiIgZmlsbD0iIzM4QTNGRiIvPgo8L3N2Zz4=';
+        logo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAzNiAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDBDOC4wNiAwIDAgOC4wNiAwIDE4QzAgMjcuOTQgOC4wNiAzNiAxOCAzNkMyNy45NCAzNiAzNiAyNy45NCAzNiAxOEMzNiA4LjA2IDI3Ljk0IDAgMTggMFoiIGZpbGw9IiMzOEEzRkYiLz4KPHBhdGggZD0iTTE4IDI3QzIyLjk3IDI3IDI3IDIyLjk3IDI3IDE4QzI3IDEzLjAzIDIyLjk3IDkgMTggOUMxMy4wMyA5IDkgMTMuMDMgOSAxOEM5IDIyLjk3IDEzLjAzIDI3IDE4IDI3WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE4IDIzQzIwLjc2IDIzIDIzIDIwLjc2IDIzIDE4QzIzIDE1LjI0IDIwLjc2IDEzIDE4IDEzQzE1LjI0IDEzIDEzIDE1LjI4IDEzIDE4QzEzIDIwLjcyIDE1LjI4IDIzIDE4IDIzWiIgZmlsbD0iIzM4QTNGRiIvPgo8L3N2Zz4=';
       };
       localLogo.src = 'gt-markdawin-icon.png';
     }
@@ -938,7 +952,6 @@ class GTMarkdaWin {
     if(text){ 
       insertAtCursor(`[^${id}]`); 
       
-      // البحث عن الهوامش وإضافة الهامش الجديد
       const editorContent = this.editor.value;
       const footnotesMatch = editorContent.match(/\[\^(\d+)\]:/g);
       let maxId = 0;
@@ -950,7 +963,6 @@ class GTMarkdaWin {
         });
       }
       
-      // إضافة الهامش في نهاية المستند
       const newFootnote = `\n[^${id}]: ${text}`;
       this.editor.value += newFootnote;
       
@@ -987,7 +999,6 @@ class GTMarkdaWin {
     const cur = document.body.getAttribute('dir') || document.documentElement.getAttribute('dir') || 'rtl'; 
     const next = cur === 'rtl' ? 'ltr' : 'rtl'; 
     
-    // تطبيق على جميع العناصر
     document.documentElement.setAttribute('dir', next); 
     document.body.setAttribute('dir', next); 
     if(this.editor) this.editor.setAttribute('dir', next); 
@@ -1090,11 +1101,9 @@ class GTMarkdaWin {
           const content = ev.target.result;
           
           if(f.name.endsWith('.html') || f.name.endsWith('.htm')) {
-            // عرض HTML مباشرة في المعاينة
             this.preview.innerHTML = content;
             notifier.show(`تم فتح ${f.name} في المعاينة`,'success');
           } else {
-            // عرض Markdown كمحتوى تحريري
             this.editor.value = content;
             this.editor.dispatchEvent(new Event('input',{bubbles:true}));
             notifier.show(`تم تحميل ${f.name}`,'success');
@@ -1130,7 +1139,7 @@ class GTMarkdaWin {
   }
 
   getPreviewStyles() {
-    const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
+    const currentFont = document.body.style.fontFamily || "'Ubuntu Arabic', 'Amiri Quran', system-ui";
     
     return `
       * {
@@ -1288,7 +1297,7 @@ class GTMarkdaWin {
 
     try {
       const printDate = this.getMoroccanDateFormatted();
-      const currentFont = document.body.style.fontFamily || "'Amiri Quran', system-ui";
+      const currentFont = document.body.style.fontFamily || "'Ubuntu Arabic', 'Amiri Quran', system-ui";
       const currentDir = document.body.getAttribute('dir') || 'rtl';
       
       const printContent = `
