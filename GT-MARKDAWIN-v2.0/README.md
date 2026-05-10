@@ -1,0 +1,577 @@
+<div align="center">
+
+<img src="public/icon.png" alt="GT-MARKDAWIN" width="140" />
+
+# GT-MARKDAWIN
+
+## مارك دَوِّنْ — مُحَرِّرٌ عَرَبِيٌّ عَصْرِيٌّ
+
+**محرر Markdown عربي متكامل، مستقل، يعمل دون اتصال بالإنترنت**
+
+مبني بـ **Electron · React · TypeScript · Capacitor**
+
+[![الإصدار](https://img.shields.io/badge/الإصدار-3.0.0-0969da?style=flat-square)](package.json)
+[![الترخيص](https://img.shields.io/badge/الترخيص-GPL--3.0-1a7f37?style=flat-square)](LICENSE)
+[![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20DEB%20·%20RPM%20·%20Flatpak-orange?style=flat-square)](#linux)
+[![Android](https://img.shields.io/badge/Android-APK-3ddc84?style=flat-square)](#android)
+
+</div>
+
+---
+
+## 📋 الفهرس
+
+- [لمحة عامة](#-لمحة-عامة)
+- [الميزات](#-الميزات)
+- [التثبيت على Linux](#-linux)
+- [التثبيت على Android](#-android)
+- [واجهة التطبيق](#-واجهة-التطبيق)
+- [دعم Markdown الكامل](#-دعم-markdown-الكامل)
+- [الخطوط العربية المدمجة](#-الخطوط-العربية-المدمجة)
+- [اختصارات لوحة المفاتيح](#️-اختصارات-لوحة-المفاتيح)
+- [التصدير والاستيراد](#-التصدير-والاستيراد)
+- [البناء من المصدر](#-البناء-من-المصدر)
+- [بنية المشروع](#-بنية-المشروع)
+- [الترخيص](#-الترخيص)
+
+---
+
+## 🌟 لمحة عامة
+
+**GT-MARKDAWIN** هو محرر Markdown عربي متكامل مصمم أساساً للكاتب والمطور العربي. يعمل كتطبيق مستقل على سطح المكتب (Linux) وعلى الهواتف الذكية (Android)، ويعمل بشكل **كامل دون أي اتصال بالإنترنت**.
+
+| التقنية | الإصدار | الدور |
+|---------|---------|-------|
+| **Electron** | 33 | نافذة مستقلة على سطح المكتب + IPC + PDF |
+| **Capacitor** | 8 | تطبيق Android أصيل |
+| **React** | 18 | واجهة المستخدم التفاعلية |
+| **TypeScript** | 5.7 | أمان الأنواع |
+| **Vite** | 6 | بناء فائق السرعة |
+| **marked** | 15 | تحليل Markdown |
+| **KaTeX** | 0.16 | المعادلات الرياضية |
+| **highlight.js** | 11 | تمييز الكود البرمجي |
+
+---
+
+## ✨ الميزات
+
+### 📝 محرر متقدم
+- **دعم كامل لـ RTL/LTR** — تبديل اتجاه النص في المحرر والمعاينة دون تأثير على واجهة البرنامج
+- **خط المحرر ثابت** (Noto Sans Arabic) لوضوح الكتابة العربية
+- **خط المعاينة والتصدير** قابل للتغيير من 8 خطوط عربية مدمجة + استيراد خطوط مخصصة
+- **بحث واستبدال** (Ctrl+F) مع عدّ التكرارات والتنقل بينها
+- **لوحة إيموجي** — أكثر من 3600 إيموجي مصنّف بالعربية والإنجليزية
+- **أعلام الدول** تُعرض كصور PNG واضحة
+- **السحب والإفلات** — اسحب ملف MD/TXT/HTML وأفلته في أي مكان لفتحه فوراً
+- **فتح الملفات مباشرة** من مدير الملفات — يظهر GT-MARKDAWIN ضمن التطبيقات المقترحة لملفات `.md` و`.txt`
+- **حوار تأكيد** عند فتح ملف جديد: حفظ الحالي / فتح بدون حفظ / إلغاء
+- **حوار تأكيد الإغلاق** عند إغلاق البرنامج أو الضغط على زر الرجوع (Android)
+- **حفظ تلقائي** كل 30 ثانية في `Documents/MARKDAWIN/`
+- **سجل تراجع/إعادة** يحتفظ بـ 50 حالة
+- **إغلاق أقواس تلقائي** عند تحديد نص
+- **حفظ تلقائي** في ذاكرة الجهاز عند كل تغيير
+
+### 👁️ معاينة احترافية
+- **تحديث فوري** (600ms تأخير للأداء)
+- **تمييز الكود البرمجي** بألوان GitHub — يدعم 20+ لغة برمجة
+- **معادلات KaTeX** — مضمّنة `$...$` وكتلة `$$...$$`
+- **لوحة قسم قابلة للسحب** — اضبط عرض المحرر/المعاينة
+- **ثلاثة أوضاع عرض**: مقسّم · محرر فقط · معاينة فقط
+
+### 📤 تصدير متكامل
+| الصيغة | سطح المكتب (Electron) | Android |
+|--------|----------------------|---------|
+| **Markdown** `.md` | حوار حفظ أصيل | يُحفظ في Documents/MARKDAWIN/ |
+| **HTML** `.html` | حوار حفظ أصيل | يُحفظ في Documents/MARKDAWIN/ |
+| **PDF** | printToPDF مع تضمين الخط | يُحفظ HTML جاهز للطباعة في Documents/MARKDAWIN/ |
+
+> **ملاحظة PDF على Android**: بعد الحفظ، افتح الملف في Chrome ثم اضغط ⋮ → طباعة → حفظ كـ PDF.
+
+### 🔒 الخصوصية والاستقلالية
+- **لا خوادم خارجية** — كل شيء يعمل محلياً
+- **لا إنترنت مطلوب** — يعمل بالكامل في وضع عدم الاتصال
+- **لا تتبع ولا تحليلات** — بياناتك لك وحدك
+- الروابط الخارجية تُفتح في متصفح النظام، لا داخل التطبيق
+
+---
+
+## 📦 Linux
+
+### مجلد الإصدارات — كل الحزم في مكان واحد
+
+```
+الإصدارات/v3.0.0/
+├── GT-MARKDAWIN-3.0.0.apk            ← Android
+├── GT-MARKDAWIN-3.0.0-x86_64.AppImage  ← Linux (جميع التوزيعات)
+├── GT-MARKDAWIN_3.0.0_amd64.deb       ← Ubuntu / Debian
+├── GT-MARKDAWIN-3.0.0-x86_64.rpm     ← Fedora / RHEL
+└── GT-MARKDAWIN-3.0.0.flatpak        ← Flatpak (جميع التوزيعات)
+```
+
+---
+
+### 🟢 AppImage — جميع التوزيعات (موصى به)
+
+> لا يتطلب أي صلاحيات تثبيت. يعمل مباشرة على أي توزيعة.
+
+```bash
+chmod +x GT-MARKDAWIN-3.0.0-x86_64.AppImage
+./GT-MARKDAWIN-3.0.0-x86_64.AppImage
+```
+
+**تثبيت دائم في النظام (اختياري):**
+```bash
+mv GT-MARKDAWIN-3.0.0-x86_64.AppImage ~/.local/bin/gt-markdawin
+```
+
+---
+
+### 🔵 DEB — Ubuntu / Debian / Linux Mint / Pop!_OS
+
+```bash
+sudo dpkg -i GT-MARKDAWIN_3.0.0_amd64.deb
+# حل الاعتماديات إن وجدت
+sudo apt-get install -f
+# تشغيل
+gt-markdawin
+```
+
+**إلغاء التثبيت:**
+```bash
+sudo dpkg -r gt-markdawin
+```
+
+---
+
+### 🔴 RPM — Fedora / RHEL / CentOS / openSUSE
+
+```bash
+# Fedora / RHEL (مع حل الاعتماديات تلقائياً)
+sudo dnf localinstall GT-MARKDAWIN-3.0.0-x86_64.rpm
+
+# openSUSE
+sudo zypper install --allow-unsigned-rpm GT-MARKDAWIN-3.0.0-x86_64.rpm
+```
+
+**إلغاء التثبيت:**
+```bash
+sudo dnf remove gt-markdawin
+# أو: sudo rpm -e gt-markdawin
+```
+
+---
+
+### 📦 Flatpak — جميع التوزيعات
+
+```bash
+# التثبيت
+flatpak install --user GT-MARKDAWIN-3.0.0.flatpak
+
+# التشغيل
+flatpak run com.gnutux.GTMarkdaWin
+```
+
+---
+
+### دمج مع مدير الملفات (Linux)
+
+بعد التثبيت، يُسجَّل البرنامج تلقائياً كتطبيق مرتبط بـ:
+- `.md` و`.markdown` (Markdown)
+- `.txt` (نصوص عادية)
+
+انقر بزر الماوس الأيمن على أي ملف `.md` → **فتح باستخدام** → **GT-MARKDAWIN**
+
+---
+
+## 🤖 Android
+
+> يتطلب Android 7.0 (Nougat) أو أحدث.
+
+```bash
+# عبر ADB
+adb install GT-MARKDAWIN-3.0.0.apk
+
+# أو: انقل الملف للجهاز وافتحه من مدير الملفات
+```
+
+**فتح الملفات من مدير الملفات:**
+- انقر على أي ملف `.md` أو `.txt`
+- اختر **GT-MARKDAWIN** من قائمة التطبيقات المقترحة
+- يُفتح الملف مباشرة في المحرر
+
+**الصلاحيات المطلوبة:**
+
+| الصلاحية | السبب |
+|----------|-------|
+| قراءة/كتابة التخزين | فتح وحفظ الملفات |
+| الإنترنت | اختياري — لا يُستخدم |
+
+---
+
+## 🎨 واجهة التطبيق
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ [🖼] GT-MARKDAWIN    [خط▼] [حجم] [⬆] [👁] [😊] [☀️/🌙] [↔] [⛶]  │  الترويسة
+├──────────────────────────────────────────────────────────────────┤
+│ [↶][↷] │ [B][I][S][`][```][❝][—] │ H1·H2·H3·H4·H5·H6 │ ...   │  شريط الأدوات
+├───────────────────────────────┬──┬───────────────────────────────┤
+│  ✍️ المحرر                    │  │  👁️ المعاينة                   │
+│  (Noto Sans Arabic — ثابت)    │≡ │  (الخط المختار — متغيّر)      │
+│                               │  │                               │
+├───────────────────────────────┴──┴───────────────────────────────┤
+│  📝 250 كلمة  # 1,423 حرف  ≡ 48 سطر  ↔ RTL  ⇅ مزامنة          │  الشريط السفلي
+├──────────────────────────────────────────────────────────────────┤
+│       GT-MARKDAWIN v3.0 · SalehGNUTUX · GPL-3.0                 │  التذييل
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**ملاحظة على الشاشات الصغيرة (< 700px / Android):**
+- يختفي اسم البرنامج وتبقى الأيقونة فقط لتوفير المساحة
+- شريط الأدوات قابل للتمرير أفقياً
+
+### أوضاع العرض
+
+| الوضع | الوصف | التفعيل |
+|-------|-------|---------|
+| **مقسّم** (افتراضي) | محرر ومعاينة جنباً إلى جنب | زر العرض في الترويسة |
+| **محرر فقط** | تركيز كامل على الكتابة | نفس الزر (دورة) |
+| **معاينة فقط** | قراءة النتيجة النهائية | نفس الزر (دورة) |
+
+---
+
+## 📝 دعم Markdown الكامل
+
+### العناوين
+```markdown
+# عنوان من المستوى الأول
+## عنوان من المستوى الثاني
+### عنوان ثالث  #### رابع  ##### خامس  ###### سادس
+```
+
+### تنسيق النص
+```markdown
+**غامق**   *مائل*   ~~يتوسطه خط~~   `كود مضمّن`
+نص مرتفع: X<sup>2</sup>    نص منخفض: H<sub>2</sub>O
+```
+
+### القوائم
+```markdown
+- عنصر نقطي
+  - متداخل
+
+1. قائمة مرقمة
+
+- [x] مهمة مكتملة
+- [ ] مهمة معلّقة
+```
+
+### الجداول (GFM)
+```markdown
+| العمود | الوسط | اليمين |
+|--------|:-----:|-------:|
+| خلية   | وسط   | يمين   |
+```
+
+### الكود مع تمييز الألوان
+````markdown
+```python
+def greet(name):
+    return f"مرحباً {name}!"
+```
+````
+
+### الوسائط
+```markdown
+![صورة](./image.png "عنوان")
+[رابط](https://example.com "تلميح")
+<audio src="sound.mp3" controls></audio>
+<iframe width="560" height="315" src="youtube.com/embed/..."></iframe>
+```
+
+### المعادلات الرياضية (KaTeX)
+```markdown
+مضمّنة: $E = mc^2$
+
+كتلة:
+$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$
+```
+
+### الحواشي المرجعية
+```markdown
+نص يحتوي حاشية[^1].
+
+[^1]: محتوى الحاشية في نهاية المستند.
+```
+
+### محاذاة النص
+```markdown
+<p style="text-align:right;">يمين</p>
+<p style="text-align:center;">وسط</p>
+<p style="text-align:left;">يسار</p>
+```
+
+### قوائم التعريف
+```markdown
+مصطلح
+:   تعريف المصطلح
+```
+
+---
+
+## 🔤 الخطوط العربية المدمجة
+
+| الخط | الطراز | مثالي لـ |
+|------|--------|---------|
+| **Ubuntu Arabic** *(افتراضي)* | عصري واضح | كتابة عامة، مستندات |
+| **Amiri Quran** | خطي كلاسيكي | نصوص قرآنية |
+| **Amiri Quran Colored** | قرآني ملوّن | مصاحف ملوّنة |
+| **ArbFONTS Amiri Quran** | قرآني كلاسيكي | نصوص دينية رسمية |
+| **Uthmanic Hafs** | عثماني أصيل | المصحف الشريف |
+| **Arslan Wessam** | فني زخرفي | عناوين، شعارات |
+| **Noto Sans Arabic** | حديث متعدد الأوزان | واجهات، كود |
+| **Monospace** | أحادي العرض | الكود البرمجي |
+
+> **خط المحرر ثابت** على Noto Sans Arabic لوضوح الكتابة.  
+> **خط المعاينة والتصدير** يتغير حسب اختيارك.  
+> يمكن **استيراد خطوط مخصصة** (TTF/OTF/WOFF/WOFF2) بالنقر على أيقونة الاستيراد.
+
+---
+
+## ⌨️ اختصارات لوحة المفاتيح
+
+| الاختصار | الوظيفة |
+|----------|---------|
+| `Ctrl + B` | **غامق** |
+| `Ctrl + I` | *مائل* |
+| `Ctrl + Z` | تراجع |
+| `Ctrl + Y` / `Ctrl+Shift+Z` | إعادة |
+| `Ctrl + F` | بحث واستبدال |
+| `Tab` | مسافة بادئة (4 مسافات) |
+| `F11` | ملء الشاشة / الخروج |
+| `Escape` | إغلاق المودال أو لوحة الإيموجي |
+
+---
+
+## 📤 التصدير والاستيراد
+
+### تصدير PDF
+
+**سطح المكتب (Electron):**
+- ينتج PDF حقيقي عبر `webContents.printToPDF()`
+- الخط العربي **مضمَّن تلقائياً** في الملف
+- يظهر حوار حفظ أصيل من النظام
+
+**Android (Capacitor):**
+- يُحفظ HTML جاهز للطباعة في `Documents/MARKDAWIN/`
+- افتح الملف في Chrome ثم: ⋮ → طباعة → حفظ كـ PDF
+
+### حفظ تلقائي
+
+يُحفظ المحتوى تلقائياً كل **30 ثانية** في:
+- **Linux/Mac**: `~/Documents/MARKDAWIN/auto-*.md`
+- **Android**: `Documents/MARKDAWIN/auto-*.md`
+
+تظهر رسالة تأكيد مع مسار الحفظ.
+
+### استيراد الملفات
+
+| نوع الملف | السلوك |
+|-----------|--------|
+| `.md` `.txt` `.markdown` | يُحمَّل في المحرر |
+| `.html` `.htm` | يُعرض مباشرة في المعاينة |
+
+**طرق الاستيراد:**
+- **زر الفتح** في رأس المحرر
+- **السحب والإفلات** في أي مكان بالنافذة
+- **النقر المزدوج** على الملف في مدير الملفات (Linux/Android)
+
+> عند فتح ملف جديد وكان المحرر يحتوي محتوى: يظهر حوار **حفظ / بدون حفظ / إلغاء**.
+
+---
+
+## 🔧 البناء من المصدر
+
+### المتطلبات
+
+| الأداة | الإصدار الأدنى |
+|--------|----------------|
+| Node.js | ≥ 18 |
+| npm | ≥ 9 |
+| ImageMagick | أي إصدار (للأيقونات) |
+
+### خطوات الإعداد
+
+```bash
+# 1. استنساخ المستودع
+git clone https://github.com/SalehGNUTUX/GT-MARKDAWIN.git
+cd GT-MARKDAWIN
+
+# 2. تثبيت الاعتماديات
+npm install
+
+# 3. تشغيل وضع التطوير — متصفح
+npm run dev
+
+# 4. تشغيل وضع التطوير — نافذة Electron
+npm run dev:electron
+
+# 5. بناء الإصدار النهائي
+npm run build
+
+# 6. بناء حزم Linux (AppImage + DEB)
+npm run electron:build:linux
+```
+
+### سكريبت البناء الشامل
+
+```bash
+# فحص المتطلبات (بدون تثبيت)
+bash scripts/build-packages.sh check-deps
+
+# تثبيت المتطلبات المفقودة فقط
+bash scripts/build-packages.sh install-deps
+
+# بناء حزم Linux فقط
+bash scripts/build-packages.sh linux
+
+# بناء APK أندرويد
+bash scripts/build-packages.sh apk
+
+# بناء Flatpak
+bash scripts/build-packages.sh flatpak
+
+# بناء كل الحزم
+bash scripts/build-packages.sh all
+
+# المساعدة
+bash scripts/build-packages.sh --help
+```
+
+> السكريبت **يكتشف تلقائياً** التوزيعة ويُثبّت فقط **ما هو مفقود** — لا يُعيد تثبيت ما هو موجود.
+
+### بناء APK Android
+
+```bash
+# المتطلب: Android SDK
+export ANDROID_HOME=$HOME/Android/Sdk
+
+# مزامنة + بناء
+npm run build
+npx cap sync android
+cd android && ./gradlew assembleRelease
+```
+
+### بناء Flatpak
+
+```bash
+# تثبيت الـ runtimes المطلوبة
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub org.electronjs.Electron2.BaseApp//24.08
+flatpak install --user flathub org.freedesktop.Sdk//24.08
+
+# بناء
+bash scripts/build-packages.sh flatpak
+```
+
+---
+
+## 🗂️ بنية المشروع
+
+```
+GT-MARKDAWIN/
+│
+├── electron/
+│   ├── main.cjs          ← العملية الرئيسية (IPC + نافذة + PDF + force-close)
+│   └── preload.cjs       ← contextBridge — يكشف electronAPI للـ renderer
+│
+├── android/              ← مشروع Android (Capacitor 8)
+│   └── app/src/main/
+│       └── AndroidManifest.xml  ← صلاحيات + intent-filters للملفات
+│
+├── src/                  ← تطبيق React (renderer)
+│   ├── context.tsx       ← إدارة الحالة الكاملة (useReducer + undo/redo)
+│   ├── App.tsx           ← المكوّن الجذر (drag-drop · file-open · close-confirm · auto-save)
+│   ├── components/
+│   │   ├── Header.tsx        ← الترويسة — متجاوبة (اسم مخفي < 700px)
+│   │   ├── Toolbar.tsx        ← شريط الأدوات (جميع أزرار Markdown)
+│   │   ├── SplitPane.tsx      ← لوحة قابلة للسحب (drag-to-resize)
+│   │   ├── EditorPanel.tsx    ← المحرر + بحث/استبدال
+│   │   ├── PreviewPanel.tsx   ← المعاينة + أزرار التصدير
+│   │   ├── EmojiPanel.tsx     ← 3600+ إيموجي مع تصنيف وبحث
+│   │   ├── StatusBar.tsx      ← إحصائيات النص
+│   │   ├── Footer.tsx         ← معلومات المشروع (GPL-3.0)
+│   │   ├── Notification.tsx   ← إشعارات Toast
+│   │   ├── ErrorBoundary.tsx  ← معالجة الأخطاء
+│   │   └── modals/            ← نوافذ الإدراج (رابط · صورة · جدول...)
+│   ├── lib/
+│   │   ├── markdown.ts    ← marked + KaTeX + highlight.js + حواشي
+│   │   ├── export.ts      ← تصدير MD/HTML/PDF (Electron + Android + متصفح)
+│   │   └── insertText.ts  ← إدراج نص في موضع المؤشر
+│   └── styles/
+│       ├── index.css      ← الثيمات + تخطيط التطبيق + responsive
+│       └── preview.css    ← تنسيق Markdown + RTL/LTR + طباعة
+│
+├── public/
+│   ├── fonts/            ← 11 خط عربي (TTF/OTF)
+│   ├── emojis/           ← 3600+ صورة إيموجي (PNG/SVG)
+│   ├── emojis.json       ← قاعدة بيانات الإيموجي
+│   ├── fonts.css         ← تعريفات @font-face (مُحمَّلة خارج Vite)
+│   └── icon.png          ← الأيقونة الرئيسية (857×867)
+│
+├── build/icons/          ← أيقونات مُولَّدة: 16×16 حتى 1024×1024
+├── flatpak/              ← manifest Flatpak + metainfo.xml
+├── الإصدارات/v3.0.0/    ← جميع الحزم المبنية في مكان واحد
+│   ├── GT-MARKDAWIN-3.0.0.apk
+│   ├── GT-MARKDAWIN-3.0.0-x86_64.AppImage
+│   ├── GT-MARKDAWIN_3.0.0_amd64.deb
+│   ├── GT-MARKDAWIN-3.0.0-x86_64.rpm
+│   └── GT-MARKDAWIN-3.0.0.flatpak
+│
+├── scripts/
+│   └── build-packages.sh ← سكريبت بناء ذكي (كشف تلقائي + تثبيت ما ينقص فقط)
+├── capacitor.config.ts   ← إعدادات Capacitor/Android
+├── package.json          ← npm + electron-builder (GPL-3.0-or-later)
+├── vite.config.ts        ← إعدادات Vite
+└── CLAUDE.md             ← توجيهات للذكاء الاصطناعي
+
+```
+
+---
+
+## 🔑 مفاتيح التخزين المحلي
+
+| المفتاح | القيمة الافتراضية | الوصف |
+|---------|------------------|-------|
+| `gt-md-content` | محتوى ترحيبي | نص المحرر |
+| `gt-md-theme` | `dark` | الثيم (داكن/فاتح) |
+| `gt-md-dir` | `rtl` | اتجاه النص (RTL/LTR) |
+| `gt-md-font` | `Ubuntu Arabic` | خط المعاينة |
+| `gt-md-fontsize` | `16` | حجم الخط (px) |
+| `gt-md-sync` | `true` | مزامنة التمرير |
+| `gt-md-custom-fonts` | `[]` | الخطوط المستوردة |
+
+---
+
+## 📄 الترخيص
+
+```
+GT-MARKDAWIN — محرر مارك داون عربي
+حقوق النشر © 2026 SalehGNUTUX
+
+هذا البرنامج برمجية حرة؛ يمكنك إعادة توزيعه أو تعديله
+وفق شروط رخصة GNU العمومية الإصدار الثالث (GPL-3.0)
+أو أي إصدار لاحق، كما نشرتها مؤسسة البرمجيات الحرة.
+```
+
+**[قراءة الترخيص الكامل →](LICENSE)**
+
+---
+
+<div align="center">
+
+صُنع بـ ❤️ للمجتمع العربي مفتوح المصدر
+
+**[GitHub](https://github.com/SalehGNUTUX/GT-MARKDAWIN)** · **[الإبلاغ عن مشكلة](https://github.com/SalehGNUTUX/GT-MARKDAWIN/issues)** · **[SalehGNUTUX](https://github.com/SalehGNUTUX)**
+
+</div>

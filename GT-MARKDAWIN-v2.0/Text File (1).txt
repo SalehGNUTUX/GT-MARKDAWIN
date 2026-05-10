@@ -1,0 +1,1017 @@
+       }
+       64 -        // Format: Record<code, { char, name, ... }>
+       65 -        else if (typeof data === 'object' && data !== null) {
+       66 -          entries = Object.entries(data as Record<string, Record<string, string>>)
+       67 -            .map(([key, val]) => ({
+       68 -              name: val.name ?? key,
+       69 -              unicode: val.unicode ?? key,
+       70 -              png: val.png ?? '',
+       71 -              char: val.char ?? val.emoji ?? (
+       72 -                /^[0-9a-f]+$/i.test(key)
+       73 -                  ? String.fromCodePoint(parseInt(key, 16))
+       74 -                  : key
+       75 -              ),
+       76 -            }));
+      144 +        // Object format
+      145 +        else if (typeof raw === 'object' && raw !== null) {
+      146 +          entries = Object.entries(raw as Record<string, Record<string, string>>)
+      147 +            .filter(([key]) => /^[0-9a-f]+$/i.test(key))
+      148 +            .map(([key, val]) => {
+      149 +              const unicode = val.unicode ?? key;
+      150 +              return {
+      151 +                name:     val.name ?? key,
+      152 +                unicode,
+      153 +                png:      val.png ?? '',
+      154 +                char:     (() => { try { return String.fromCodePoint(parseInt(unicode, 16)); } catch { return ''; } })(),
+      155 +                category: getCategory(unicode),
+      156 +              };
+      157 +            })
+      158 +            .filter(e => e.char);
+      159          }
+      160
+       79 -        setAllEmojis(entries.length > 0 ? entries : FALLBACK);
+      161 +        setAllEmojis(entries.length > 0 ? entries : makeFallback());
+      162        })
+       81 -      .catch(() => setAllEmojis(FALLBACK))
+      163 +      .catch(() => setAllEmojis(makeFallback()))
+      164        .finally(() => setLoading(false));
+      165    }, [showEmoji, allEmojis.length]);
+      166
+     ...
+      182
+      183    // Close on Escape
+      184    useEffect(() => {
+      103 -    const h = (e: KeyboardEvent) => {
+      104 -      if (showEmoji && e.key === 'Escape') setShowEmoji(false);
+      105 -    };
+      185 +    const h = (e: KeyboardEvent) => { if (e.key === 'Escape' && showEmoji) setShowEmoji(false); };
+      186      window.addEventListener('keydown', h);
+      187      return () => window.removeEventListener('keydown', h);
+      188    }, [showEmoji, setShowEmoji]);
+      189
+      110 -  const filtered = useMemo(() => {
+      111 -    if (!search) return allEmojis.slice(0, 300);
+      112 -    const q = search.toLowerCase();
+      113 -    return allEmojis
+      114 -      .filter(e => e.name.includes(q) || e.unicode.includes(q) || (e.char && e.char.includes(q)))
+      115 -      .slice(0, 200);
+      190 +  // ── Filtering with category-aware search ────────────────────────────────────
+      191 +  const { grouped, total } = useMemo(() => {
+      192 +    const q = search.trim().toLowerCase();
+      193 +
+      194 +    let filtered: EmojiEntry[];
+      195 +
+      196 +    if (!q) {
+      197 +      filtered = allEmojis;
+      198 +    } else {
+      199 +      // Find matching categories by keywords
+      200 +      const matchedCats = new Set<string>(
+      201 +        CATEGORIES
+      202 +          .filter(cat => cat.keywords.some(kw => kw.includes(q) || q.includes(kw)))
+      203 +          .map(cat => cat.label),
+      204 +      );
+      205 +
+      206 +      filtered = allEmojis.filter(e =>
+      207 +        e.unicode.includes(q) ||
+      208 +        e.char.includes(search) ||
+      209 +        matchedCats.has(e.category) ||
+      210 +        e.name.includes(q),
+      211 +      );
+      212 +    }
+      213 +
+      214 +    // Group by category
+      215 +    const map = new Map<string, EmojiEntry[]>();
+      216 +    for (const e of filtered) {
+      217 +      if (!map.has(e.category)) map.set(e.category, []);
+      218 +      map.get(e.category)!.push(e);
+      219 +    }
+      220 +
+      221 +    // Sort categories by CATEGORIES order, then "أخرى" last
+      222 +    const order = CATEGORIES.map(c => c.label);
+      223 +    const sorted = [...map.entries()].sort(([a], [b]) => {
+      224 +      const ai = order.indexOf(a);
+      225 +      const bi = order.indexOf(b);
+      226 +      if (ai === -1 && bi === -1) return 0;
+      227 +      if (ai === -1) return 1;
+      228 +      if (bi === -1) return -1;
+      229 +      return ai - bi;
+      230 +    });
+      231 +
+      232 +    return { grouped: sorted, total: filtered.length };
+      233    }, [search, allEmojis]);
+      234
+      235    if (!showEmoji) return null;
+      236
+      237    const handleClick = (e: EmojiEntry) => {
+      121 -    const char = e.char
+      122 -      ?? (e.unicode ? String.fromCodePoint(parseInt(e.unicode, 16)) : e.name);
+      123 -    insertAtCursor(char);
+      124 -    notify(`✅ ${char}`, 'success');
+      238 +    insertAtCursor(e.char);
+      239 +    notify(`تم إدراج ${e.char}`, 'success');
+      240    };
+      241
+      242    return (
+      128 -    <div className="emoji-panel" ref={panelRef} dir="ltr">
+      243 +    <div
+      244 +      className="emoji-panel"
+      245 +      ref={panelRef}
+      246 +      dir="ltr"
+      247 +      onClick={ev => ev.stopPropagation()}
+      248 +    >
+      249        {/* Search */}
+      250        <div className="emoji-search">
+      251          <input
+      252            ref={searchRef}
+      133 -          placeholder="Search emoji..."
+      253 +          placeholder="ابحث... (smile, heart, flag, علم)"
+      254            value={search}
+      255            onChange={e => setSearch(e.target.value)}
+      136 -          style={{ direction: 'ltr' }}
+      256 +          dir="ltr"
+      257          />
+      258 +        {search && (
+      259 +          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginInlineStart: 6 }}>
+      260 +            {total}
+      261 +          </span>
+      262 +        )}
+      263        </div>
+      264
+      140 -      {loading ? (
+      141 -        <div style={{
+      142 -          padding: '2rem', textAlign: 'center',
+      143 -          color: 'var(--text-muted)', fontSize: '0.85rem',
+      144 -        }}>
+      145 -          جاري التحميل...
+      146 -        </div>
+      147 -      ) : (
+      148 -        <div className="emoji-grid">
+      149 -          {filtered.map((e, i) =>
+      150 -            useImages && e.png ? (
+      151 -              /* Image emoji */
+      152 -              <button
+      153 -                key={i}
+      154 -                className="emoji-btn"
+      155 -                title={e.char ?? e.unicode}
+      156 -                onClick={() => handleClick(e)}
+      157 -              >
+      158 -                <img
+      159 -                  src={`./${e.png}`}
+      160 -                  alt={e.char ?? e.unicode}
+      161 -                  width={28}
+      162 -                  height={28}
+      163 -                  loading="lazy"
+      164 -                  style={{ display: 'block', imageRendering: 'auto' }}
+      165 -                  onError={ev => {
+      166 -                    // Fallback to unicode char if image fails
+      167 -                    const el = ev.currentTarget;
+      168 -                    el.style.display = 'none';
+      169 -                    el.parentElement!.textContent =
+      170 -                      e.char ?? String.fromCodePoint(parseInt(e.unicode, 16));
+      171 -                  }}
+      172 -                />
+      173 -              </button>
+      174 -            ) : (
+      175 -              /* Unicode emoji */
+      176 -              <button
+      177 -                key={i}
+      178 -                className="emoji-btn"
+      179 -                title={e.name}
+      180 -                onClick={() => handleClick(e)}
+      181 -              >
+      182 -                {e.char ?? String.fromCodePoint(parseInt(e.unicode || '2753', 16))}
+      183 -              </button>
+      184 -            ),
+      185 -          )}
+      186 -
+      187 -          {filtered.length === 0 && (
+      188 -            <div style={{
+      189 -              gridColumn: '1/-1', textAlign: 'center',
+      190 -              padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.82rem',
+      191 -            }}>
+      192 -              لا توجد نتائج لـ "{search}"
+      265 +      {/* Emoji content */}
+      266 +      <div style={{ overflowY: 'auto', flex: 1, padding: '0 4px 4px' }}>
+      267 +        {loading ? (
+      268 +          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+      269 +            جاري تحميل الإيموجي...
+      270 +          </div>
+      271 +        ) : grouped.length === 0 ? (
+      272 +          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+      273 +            لا نتائج لـ "{search}"
+      274 +          </div>
+      275 +        ) : (
+      276 +          grouped.map(([cat, emojis]) => (
+      277 +            <div key={cat}>
+      278 +              {/* Category header */}
+      279 +              <div style={{
+      280 +                fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)',
+      281 +                padding: '6px 4px 3px', marginTop: 4,
+      282 +                borderBottom: '1px solid var(--border-subtle)',
+      283 +                letterSpacing: '0.04em', direction: 'rtl',
+      284 +              }}>
+      285 +                {cat}
+      286 +              </div>
+      287 +              {/* Emoji grid */}
+      288 +              <div style={{
+      289 +                display: 'grid',
+      290 +                gridTemplateColumns: 'repeat(8, 1fr)',
+      291 +                gap: 2, padding: '3px 0',
+      292 +              }}>
+      293 +                {emojis.map((e, i) =>
+      294 +                  useImages && e.png ? (
+      295 +                    <button
+      296 +                      key={i}
+      297 +                      className="emoji-btn"
+      298 +                      title={e.char}
+      299 +                      onClick={() => handleClick(e)}
+      300 +                    >
+      301 +                      <img
+      302 +                        src={`./${e.png}`}
+      303 +                        alt={e.char}
+      304 +                        width={26}
+      305 +                        height={26}
+      306 +                        loading="lazy"
+      307 +                        style={{ display: 'block', imageRendering: 'auto' }}
+      308 +                        onError={ev => {
+      309 +                          ev.currentTarget.style.display = 'none';
+      310 +                          if (ev.currentTarget.parentElement) {
+      311 +                            ev.currentTarget.parentElement.textContent = e.char;
+      312 +                          }
+      313 +                        }}
+      314 +                      />
+      315 +                    </button>
+      316 +                  ) : (
+      317 +                    <button
+      318 +                      key={i}
+      319 +                      className="emoji-btn"
+      320 +                      title={e.char}
+      321 +                      onClick={() => handleClick(e)}
+      322 +                    >
+      323 +                      {e.char}
+      324 +                    </button>
+      325 +                  ),
+      326 +                )}
+      327 +              </div>
+      328              </div>
+      194 -          )}
+      195 -        </div>
+      196 -      )}
+      329 +          ))
+      330 +        )}
+      331 +      </div>
+      332      </div>
+      333    );
+      334  }
+
+● الآن أُصلح موضع اللوحة وزر↓الإيموجي في الـ Header:
+
+● Update(src/components/Header.tsx)
+  ⎿  Added 7 lines, removed 2 lines
+      142            {VIEW_OPTS[viewIdx].icon}
+      143          </button>
+      144
+      145 -        {/* Emoji panel */}
+      145 +        {/* Emoji panel — positions panel below this button */}
+      146          <button
+      147            className={`icon-btn${showEmoji ? ' active' : ''}`}
+      148            title="لوحة الإيموجي"
+      149 -          onClick={() => setShowEmoji(!showEmoji)}
+      149 +          onClick={(e) => {
+      150 +            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      151 +            document.documentElement.style.setProperty('--emoji-panel-top',  `${rect.bottom + 8}px`);
+      152 +            document.documentElement.style.setProperty('--emoji-panel-right', `${window.innerWidth - rect.right}px`);
+      153 +            setShowEmoji(!showEmoji);
+      154 +          }}
+      155          >
+      156            <Smile size={15} />
+      157          </button>
+
+● الآن أُصلح CSS الخاص بلوحة↑الإيموجي:    )
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(src/styles/index.css)
+  ⎿  Added 22 lines, removed 23 lines
+      489  /* ── Emoji Panel ───────────────────────────────────────────────────────────── */
+      490  .emoji-panel {
+      491    position: fixed;
+      492 -  top: 96px;
+      493 -  inset-inline-end: 1rem;
+      492 +  /* Position set dynamically via CSS variables from Header button rect */
+      493 +  top:   var(--emoji-panel-top,  60px);
+      494 +  right: var(--emoji-panel-right, 8px);
+      495    width: 320px;
+      495 -  max-height: 400px;
+      496 +  max-height: 420px;
+      497    background: var(--surface);
+      498    border: 1px solid var(--border);
+      499    border-radius: 12px;
+      499 -  box-shadow: 0 8px 30px var(--shadow-lg);
+      500 -  z-index: 500;
+      500 +  box-shadow: 0 8px 32px var(--shadow-lg);
+      501 +  z-index: 600;
+      502    display: flex;
+      503    flex-direction: column;
+      504    overflow: hidden;
+      504 -  animation: panel-in 0.18s ease;
+      505 +  animation: panel-in 0.15s ease;
+      506  }
+      507
+      508  .emoji-search {
+      508 -  padding: 0.5rem;
+      509 +  display: flex;
+      510 +  align-items: center;
+      511 +  gap: 4px;
+      512 +  padding: 0.5rem 0.5rem 0.4rem;
+      513    border-bottom: 1px solid var(--border);
+      514 +  flex-shrink: 0;
+      515  }
+      516
+      517  .emoji-search input {
+      513 -  width: 100%;
+      518 +  flex: 1;
+      519    background: var(--surface2);
+      520    border: 1px solid var(--border);
+      521    border-radius: 6px;
+      522    color: var(--text);
+      518 -  padding: 0.35rem 0.6rem;
+      519 -  font-size: 0.82rem;
+      523 +  padding: 0.32rem 0.55rem;
+      524 +  font-size: 0.8rem;
+      525    outline: none;
+      521 -  direction: rtl;
+      526  }
+      527  .emoji-search input:focus { border-color: var(--accent); }
+      528
+      525 -.emoji-grid {
+      526 -  display: grid;
+      527 -  grid-template-columns: repeat(8, 1fr);
+      528 -  gap: 2px;
+      529 -  padding: 0.5rem;
+      530 -  overflow-y: auto;
+      531 -  flex: 1;
+      532 -}
+      533 -
+      529  .emoji-btn {
+      535 -  font-size: 1.3rem;
+      536 -  padding: 4px;
+      530 +  display: flex;
+      531 +  align-items: center;
+      532 +  justify-content: center;
+      533 +  font-size: 1.25rem;
+      534 +  width: 34px;
+      535 +  height: 34px;
+      536 +  padding: 0;
+      537    border: none;
+      538    background: transparent;
+      539    border-radius: 6px;
+      540    cursor: pointer;
+      541 -  text-align: center;
+      541    line-height: 1;
+      542    transition: background 0.1s;
+      543  }
+
+● الآن نبني ونتحقق:
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && npm run build 2>&1 | grep -E "(error|✓ built)" | head -10)
+  ⎿  ✓ built in 46.95s
+  ⎿  (timeout 2m)
+
+● البناء نجح. الآن نبني حزم Electron الجديدة:
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && npm run electron:build:linux 2>&1 | grep -E "(building|built|error|✓|✗|⨯)…)
+  ⎿  vite v6.4.2 building for production...
+     ✓ 1802 modules transformed.
+     ✓ built in 8.19s
+     … +3 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Bash(ls -lh "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/"GT-MARKDAWIN-3.0.0* 2>/dev/null && echo "---" && dpkg -c "/mnt/8…)
+● Bash(ls -lh "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/"GT-MARKDAWIN-3.0.0* 2>/dev/null && echo "---" && dpkg -c "/mnt/8…)
+  ⎿  -rwxr-xr-x 1 gnutux gnutux 131M May  1 19:32 /mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN-3.0.0-x86_64.AppI
+     mage
+     -rw-rw-r-- 1 gnutux gnutux  88M May  1 19:36 /mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN-3.0.0.x86_64.rpm
+     ---
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Bash(dpkg -c "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN_3.0.0_amd64.deb" 2>/dev/null | grep -E "preload|mai…)
+  ⎿  (No output)
+
+● Bash(dpkg -c "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN_3.0.0_amd64.deb" 2>/dev/null | grep "app.asar" | he…)
+  ⎿  drwxrwxr-x 0/0               0 2026-05-01 19:32 ./opt/GT-MARKDAWIN/resources/app.asar.unpacked/
+     drwxrwxr-x 0/0               0 2026-05-01 19:32 ./opt/GT-MARKDAWIN/resources/app.asar.unpacked/dist/
+     drwxrwxr-x 0/0               0 2026-05-01 19:32 ./opt/GT-MARKDAWIN/resources/app.asar.unpacked/dist/fonts/
+     … +2 lines (ctrl+o to expand)
+
+● Bash(dpkg -x "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN_3.0.0_amd64.deb" /tmp/gt-deb-test 2>/dev/null && ls…)
+  ⎿  Running…
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+     drwxrwxr-x 0/0               0 2026-05-01 19:32 ./opt/GT-MARKDAWIN/resources/app.asar.unpacked/dist/fonts/
+     … +2 lines (ctrl+o to expand)
+
+● Bash(dpkg -x "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN_3.0.0_amd64.deb" /tmp/gt-deb-test 2>/dev/null && ls…)
+● Bash(dpkg -x "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN/release/GT-MARKDAWIN_3.0.0_amd64.deb" /tmp/gt-deb-test 2>/dev/null && ls…)
+  ⎿  apparmor-profile
+     app.asar
+     app.asar.unpacked
+     asar not available, checking differently
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && node -e "
+      const {execSync}=require('child_process');…)
+  ⎿  Running…
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+
+   cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && node -e "
+   const {execSync}=require('child_process');
+   const path=require('path');
+   // Use the local asar from electron
+   const asarPath=path.join('node_modules','@electron','asar','dist','index.js');
+   try {
+     const asar=require(asarPath);
+     const files=asar.listPackage('/tmp/gt-deb-test/opt/GT-MARKDAWIN/resources/app.asar');
+     const elFiles=files.filter(f=>f.includes('electron'));
+     console.log('Electron files in ASAR:',elFiles);
+   } catch(e){
+     // Try strings grep on asar
+     asar not available, checking differently
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && node -e "
+      const {execSync}=require('child_process');…)
+  ⎿  Error: Exit code 1
+
+  Searching for 4 patterns… (ctrl+o to expand)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && node -e "
+      const {execSync}=require('child_process');…)
+  ⎿  Error: Exit code 1
+
+  Searched for 4 patterns (ctrl+o to expand)
+
+● Bash(# ASAR format: 4-byte magic, 4-byte header size, 4-byte header string size, then JSON header
+      python3 -c "…)
+  ⎿  Running…
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+
+   # ASAR format: 4-byte magic, 4-byte header size, 4-byte header string size, then JSON header
+   python3 -c "
+   import struct, json
+   with open('/tmp/gt-deb-test/opt/GT-MARKDAWIN/resources/app.asar', 'rb') as f:
+       # Read the ASAR header
+       f.seek(12)
+       size = struct.unpack('<I', f.read(4))[0]
+       f.seek(16)
+       header_json = f.read(size).decode('utf-8', errors='replace')
+       data = json.loads(header_json)
+       # Show top-level files
+       def show(obj, prefix=''):
+           for k,v in obj.get('files',{}).items():
+               if 'files' in v:
+                   show(v, prefix+k+'/')
+  Searched for 4 patterns (ctrl+o to expand)
+
+● Bash(# ASAR format: 4-byte magic, 4-byte header size, 4-byte header string size, then JSON header
+      python3 -c "…)
+  ⎿  electron/main.cjs
+     electron/preload.cjs
+
+● ممتاز — كلا الملفين موجودان في ASAR. المشكلة الوحيدة هي أن grep لا يجدهما في الملف الثنائي بسبب الضغط. الحزمة صحيحة. الآن أتحقق من مشكلة PDF — الـ preload.cjs مسار:
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● أرى المشكلة الجذرية: window.open في Electron يحتاج blob URL وليس about:blank. وأيضاً KaTeX CDN يتطلب إنترنت. سأصلح كل شيء:
+
+● Update(electron/main.cjs)
+  ⎿  Added 6 lines, removed 7 lines
+      48      win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+      49    }
+      50
+      51 -  // Window open handler: allow blank windows (for print), open external in browser
+      51 +  // Window open handler
+      52    win.webContents.setWindowOpenHandler(({ url }) => {
+      53 -    // Allow about:blank for print dialogs
+      54 -    if (!url || url === 'about:blank') return { action: 'allow' };
+      55 -    // Open HTTP(S) links in system browser
+      56 -    if (/^https?:\/\//.test(url)) {
+      57 -      shell.openExternal(url);
+      58 -      return { action: 'deny' };
+      53 +    // Allow blank / blob: / data: windows (used for print dialogs)
+      54 +    if (!url || url === 'about:blank' || url.startsWith('blob:') || url.startsWith('data:')) {
+      55 +      return { action: 'allow' };
+      56      }
+      57 +    // Open external HTTP(S) links in system browser
+      60    });
+      61
+
+● الآن أُحدّث IPC handler ليستخدم loadURL مع data URL بدلاً من ملف مؤقت:
+
+● Update(electron/main.cjs)
+  ⎿  Added 37 lines, removed 30 lines
+       62    return win;
+       63  }
+       64
+       65 -// ── IPC: Print to PDF ────────────────────────────────────────────────────────
+       65 +// ── IPC: Print to PDF (loads HTML via data URL — works fully offline) ─────────
+       66  ipcMain.handle('print-to-pdf', async (event, htmlContent) => {
+       67 -  const win = BrowserWindow.fromWebContents(event.sender);
+       68 -  if (!win) return { success: false, error: 'No window' };
+       67 +  const senderWin = BrowserWindow.fromWebContents(event.sender);
+       68 +  if (!senderWin) return { success: false, error: 'No window' };
+       69
+       70 -  const tmpHtml = path.join(app.getPath('temp'), `gt-md-print-${Date.now()}.html`);
+       71 -  fs.writeFileSync(tmpHtml, htmlContent, 'utf-8');
+       72 -
+       70    const printWin = new BrowserWindow({
+       71      show: false,
+       75 -    webPreferences: { nodeIntegration: false, contextIsolation: true },
+       72 +    width: 900,
+       73 +    height: 700,
+       74 +    webPreferences: {
+       75 +      nodeIntegration: false,
+       76 +      contextIsolation: true,
+       77 +      webSecurity: false, // Allow data: URLs and local resources
+       78 +    },
+       79    });
+       80
+       78 -  await printWin.loadFile(tmpHtml);
+       81 +  try {
+       82 +    // Load HTML via base64 data URL — no external network required
+       83 +    const b64 = Buffer.from(htmlContent, 'utf-8').toString('base64');
+       84 +    await printWin.loadURL(`data:text/html;base64,${b64}`);
+       85
+       80 -  return new Promise((resolve) => {
+       81 -    printWin.webContents.printToPDF({
+       86 +    // Give page time to render (fonts, layout)
+       87 +    await new Promise(r => setTimeout(r, 800));
+       88 +
+       89 +    const pdfData = await printWin.webContents.printToPDF({
+       90        printBackground: true,
+       91        pageSize: 'A4',
+       84 -      margins: { top: 25, bottom: 25, left: 20, right: 20 },
+       85 -    }).then(async data => {
+       86 -      fs.unlinkSync(tmpHtml);
+       87 -      printWin.close();
+       92 +      margins: { top: 20, bottom: 20, left: 15, right: 15 },
+       93 +      landscape: false,
+       94 +    });
+       95
+       89 -      const { filePath, canceled } = await dialog.showSaveDialog(win, {
+       90 -        title: 'حفظ PDF',
+       91 -        defaultPath: path.join(app.getPath('documents'), `GT-MD-${Date.now()}.pdf`),
+       92 -        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+       93 -      });
+       96 +    printWin.close();
+       97
+       95 -      if (!canceled && filePath) {
+       96 -        fs.writeFileSync(filePath, data);
+       97 -        resolve({ success: true, path: filePath });
+       98 -      } else {
+       99 -        resolve({ success: false, error: 'cancelled' });
+      100 -      }
+      101 -    }).catch(err => {
+      102 -      try { fs.unlinkSync(tmpHtml); } catch {}
+      103 -      try { printWin.close(); } catch {}
+      104 -      resolve({ success: false, error: err.message });
+       98 +    const { filePath, canceled } = await dialog.showSaveDialog(senderWin, {
+       99 +      title: 'حفظ PDF — GT-MARKDAWIN',
+      100 +      defaultPath: path.join(app.getPath('documents'), `GT-MD-${Date.now()}.pdf`),
+      101 +      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      102      });
+      106 -  });
+      103 +
+      104 +    if (!canceled && filePath) {
+      105 +      fs.writeFileSync(filePath, pdfData);
+      106 +      return { success: true, path: filePath };
+      107 +    }
+      108 +    return { success: false, error: 'cancelled' };
+      109 +
+      110 +  } catch (err) {
+      111 +    try { printWin.close(); } catch {}
+      112 +    return { success: false, error: String(err) };
+      113 +  }
+      114  });
+      115
+      116  // ── IPC: Show save dialog ────────────────────────────────────────────────────
+
+● الآن أُصلح export.ts — PDF بدون CDN، خط مضمّن، ومناسب للـ data URL:
+
+  Read 1 file (ctrl+o to expand)
+
+● أُعيد كتابة export.ts بالكامل مع KaTeX CSS مضمّن (بدون CDN) وblob URL للمتصفح:
+
+● Write(src/lib/export.ts)
+  ⎿  Added 136 lines, removed 150 lines
+       1  import { renderMarkdown } from './markdown';
+       2 +// Import KaTeX CSS as inline string — Vite bundles it, no CDN needed
+       3 +import katexCSSRaw from 'katex/dist/katex.min.css?inline';
+       4
+       5 +// Strip @font-face (fonts won't be at a relative path in data: context)
+       6 +// Math will render using system serif fonts — good enough for PDF
+       7 +const KATEX_CSS = katexCSSRaw.replace(/@font-face\s*\{[^}]*\}/g, '');
+       8 +
+       9  const isElectron = () => typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+      10
+       5 -// ── File download (browser fallback) ─────────────────────────────────────────
+      11 +// ── File download helper ──────────────────────────────────────────────────────
+      12  function downloadBlob(blob: Blob, filename: string) {
+      13    const url = URL.createObjectURL(blob);
+      14    const a = document.createElement('a');
+     ...
+      20    setTimeout(() => URL.revokeObjectURL(url), 1000);
+      21  }
+      22
+      17 -// ── Morocco timestamp ─────────────────────────────────────────────────────────
+      23 +// ── Morocco timestamps ────────────────────────────────────────────────────────
+      24  function getMoroccanTimestamp(): string {
+      25    try {
+      26      const p = new Intl.DateTimeFormat('en-CA', {
+     ...
+      31      const g = (t: string) => p.find(x => x.type === t)?.value ?? '00';
+      32      return `${g('year')}-${g('month')}-${g('day')}_${g('hour')}-${g('minute')}`;
+      33    } catch {
+      28 -    return new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+      34 +    return new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+      35    }
+      36  }
+      37
+     ...
+       45    }
+       46  }
+       47
+       42 -// ── Build shared CSS for exports ──────────────────────────────────────────────
+       43 -function sharedCSS(
+       44 -  theme: string, direction: string, fontFamily: string,
+       45 -  embedFonts = false, fontB64?: string | null,
+       48 +// ── Shared CSS (no external references, works in data: URL context) ───────────
+       49 +function makeCSS(
+       50 +  theme: string, direction: string, fontFamily: string, fontB64?: string | null,
+       51  ): string {
+       52    const isDark = theme === 'dark';
+       48 -  const bg      = isDark ? '#0d1117' : '#ffffff';
+       49 -  const text     = isDark ? '#e6edf3' : '#1f2328';
+       50 -  const surface  = isDark ? '#161b22' : '#f6f8fa';
+       51 -  const border   = isDark ? '#30363d' : '#d0d7de';
+       52 -  const accent   = isDark ? '#2f81f7' : '#0969da';
+       53 -  const codeBg   = isDark ? '#161b22' : '#f6f8fa';
+       53 +  const bg     = isDark ? '#0d1117' : '#ffffff';
+       54 +  const text   = isDark ? '#e6edf3' : '#1f2328';
+       55 +  const surf   = isDark ? '#161b22' : '#f6f8fa';
+       56 +  const brd    = isDark ? '#30363d' : '#d0d7de';
+       57 +  const acc    = isDark ? '#2f81f7' : '#0969da';
+       58 +  const code   = isDark ? '#161b22' : '#f6f8fa';
+       59
+       55 -  const fontFace = embedFonts && fontB64
+       56 -    ? `@font-face { font-family: '${fontFamily}';
+       57 -        src: url('data:font/truetype;base64,${fontB64}') format('truetype'); }`
+       60 +  const fontFace = fontB64
+       61 +    ? `@font-face{font-family:'${fontFamily}';src:url('data:font/truetype;base64,${fontB64}')format('truetype')}`
+       62      : '';
+       63
+       64    return `
+       61 -    ${fontFace}
+       62 -    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+       63 -    body{font-family:'${fontFamily}','Noto Sans Arabic',system-ui,sans-serif;font-size:15px;
+       64 -      line-height:1.85;color:${text};background:${bg};direction:${direction};padding:2rem}
+       65 -    .wrap{max-width:860px;margin:0 auto}
+       66 -    h1{font-size:1.9em;border-bottom:2px solid ${border};padding-bottom:.3em;margin:1.5em 0 .5em}
+       67 -    h2{font-size:1.5em;border-bottom:1px solid ${border};padding-bottom:.2em;margin:1.3em 0 .4em}
+       68 -    h3{font-size:1.2em;margin:1.1em 0 .3em}
+       69 -    h4{font-size:1.05em;margin:1em 0 .3em}
+       70 -    h5,h6{font-size:.9em;margin:.8em 0 .2em}
+       71 -    h1,h2,h3,h4,h5,h6{font-weight:700}
+       72 -    p{margin:.5em 0}
+       73 -    a{color:${accent};text-decoration:underline}
+       74 -    strong{font-weight:700} em{font-style:italic} del{text-decoration:line-through;opacity:.7}
+       75 -    blockquote{border-inline-start:4px solid ${accent};padding:.4em 1em;margin:.8em 0;
+       76 -      color:#8b949e;background:${surface};border-radius:4px}
+       77 -    :not(pre)>code{font-family:monospace;font-size:.875em;background:${codeBg};
+       78 -      padding:.15em .4em;border-radius:4px;border:1px solid ${border};direction:ltr;
+       79 -      display:inline-block}
+       80 -    pre{background:${codeBg};border:1px solid ${border};border-radius:8px;
+       81 -      padding:1em;overflow-x:auto;margin:.8em 0;direction:ltr}
+       82 -    pre code{background:none;padding:0;border:none;font-size:.875em}
+       83 -    table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.9em}
+       84 -    th,td{border:1px solid ${border};padding:.45em .75em;text-align:start}
+       85 -    th{background:${surface};font-weight:700}
+       86 -    tr:nth-child(even){background:${surface}}
+       87 -    ul,ol{padding-inline-start:1.75em;margin:.4em 0}
+       88 -    li{margin:.2em 0}
+       89 -    li input[type=checkbox]{margin-inline-end:.5em;accent-color:${accent}}
+       90 -    img{max-width:100%;border-radius:8px;display:block;margin:.4em auto}
+       91 -    hr{border:none;border-top:1px solid ${border};margin:1.5em 0}
+       92 -    sup,sub{font-size:.8em}
+       93 -    .math-block{text-align:center;margin:1.2em 0;padding:.8em;
+       94 -      background:${surface};border:1px solid ${border};border-radius:8px;direction:ltr}
+       95 -    .footnote-item{font-size:.85em;color:#8b949e;border-top:1px solid ${border};padding:.3em 0}
+       96 -    .footnote-ref a,.footnote-back{color:${accent};font-size:.8em;text-decoration:none}
+       97 -    iframe{max-width:100%;border-radius:8px;border:1px solid ${border};display:block;margin:.6em auto}
+       98 -    audio{display:block;margin:.6em auto;max-width:100%}
+       99 -  `;
+       65 +${fontFace}
+       66 +*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+       67 +body{font-family:'${fontFamily}','Noto Sans Arabic',system-ui,sans-serif;font-size:15px;
+       68 +  line-height:1.85;color:${text};background:${bg};direction:${direction};padding:1.5rem}
+       69 +.wrap{max-width:860px;margin:0 auto}
+       70 +h1{font-size:1.9em;border-bottom:2px solid ${brd};padding-bottom:.3em;margin:1.5em 0 .5em;font-weight:700}
+       71 +h2{font-size:1.5em;border-bottom:1px solid ${brd};padding-bottom:.2em;margin:1.3em 0 .4em;font-weight:700}
+       72 +h3{font-size:1.2em;margin:1.1em 0 .3em;font-weight:700}
+       73 +h4{font-size:1.05em;margin:1em 0 .3em;font-weight:700}
+       74 +h5,h6{font-size:.9em;margin:.8em 0 .2em;font-weight:700}
+       75 +p{margin:.5em 0}
+       76 +a{color:${acc};text-decoration:underline}
+       77 +strong{font-weight:700} em{font-style:italic} del{text-decoration:line-through;opacity:.7}
+       78 +blockquote{border-inline-start:4px solid ${acc};padding:.4em 1em;margin:.8em 0;color:#8b949e;background:${surf};border-radius:4px}
+       79 +:not(pre)>code{font-family:monospace;font-size:.875em;background:${code};padding:.15em .4em;border-radius:4px;border:1px solid ${brd};direction:ltr;displa
+          +y:inline-block}
+       80 +pre{background:${code};border:1px solid ${brd};border-radius:8px;padding:1em;overflow-x:auto;margin:.8em 0;direction:ltr}
+       81 +pre code{background:none;padding:0;border:none;font-size:.875em}
+       82 +table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.9em}
+       83 +th,td{border:1px solid ${brd};padding:.45em .75em;text-align:start}
+       84 +th{background:${surf};font-weight:700}
+       85 +tr:nth-child(even){background:${surf}}
+       86 +ul,ol{padding-inline-start:1.75em;margin:.4em 0}
+       87 +li{margin:.2em 0}
+       88 +li input[type=checkbox]{margin-inline-end:.5em;accent-color:${acc}}
+       89 +img{max-width:100%;border-radius:8px;display:block;margin:.4em auto}
+       90 +hr{border:none;border-top:1px solid ${brd};margin:1.5em 0}
+       91 +sup,sub{font-size:.8em}
+       92 +.math-block{text-align:center;margin:1.2em 0;padding:.8em;background:${surf};border:1px solid ${brd};border-radius:8px;direction:ltr;overflow-x:auto}
+       93 +.footnote-item{font-size:.85em;color:#8b949e;border-top:1px solid ${brd};padding:.3em 0}
+       94 +.footnote-ref a,.footnote-back{color:${acc};font-size:.8em;text-decoration:none}
+       95 +iframe{max-width:100%;border-radius:8px;border:1px solid ${brd};display:block;margin:.6em auto}
+       96 +audio{display:block;margin:.6em auto;max-width:100%}
+       97 +`;
+       98  }
+       99
+      100 +// ── Build complete standalone HTML ────────────────────────────────────────────
+      101 +function buildHTML(opts: {
+      102 +  rendered: string; direction: string; fontFamily: string;
+      103 +  theme?: string; fontB64?: string | null; forPrint?: boolean; date?: string;
+      104 +}): string {
+      105 +  const { rendered, direction, fontFamily, theme = 'light', fontB64, forPrint, date } = opts;
+      106 +  const css = makeCSS(theme, direction, fontFamily, fontB64);
+      107 +  const pdfHeaderCSS = forPrint ? `
+      108 +    @page{margin:22mm 18mm}
+      109 +    body{background:#fff;color:#000;padding:0}
+      110 +    .wrap{max-width:none}
+      111 +    .pdf-hdr{border-bottom:1.5pt solid #333;padding-bottom:5pt;margin-bottom:14pt;
+      112 +      font-size:9pt;color:#555;display:flex;justify-content:space-between;flex-wrap:wrap}
+      113 +    .pdf-hdr strong{font-size:10pt;color:#000}
+      114 +    .pdf-ftr{border-top:1pt solid #aaa;margin-top:14pt;padding-top:4pt;font-size:8pt;color:#888;text-align:center}
+      115 +    pre,code{font-size:9pt}
+      116 +  ` : `.meta{font-size:.8em;color:#8b949e;border-bottom:1px solid;padding-bottom:.75em;margin-bottom:1.5em;display:flex;gap:1em;flex-wrap:wrap}`;
+      117 +
+      118 +  const header = forPrint
+      119 +    ? `<div class="pdf-hdr"><strong>GT-MARKDAWIN v3.0 — مارك دَ وِّ  نْ مُحَ   رِّ  رٌ عَرَبِ    يٌّ   عَصْرِ   يٌّ  </strong><span>📅 ${date} | ${direction === 'rtl' ? 'RTL
+          +' : 'LTR'}</span></div>`
+      120 +    : `<div class="meta"><span>GT-MARKDAWIN v3.0</span><span>📅 ${date}</span><span>${direction === 'rtl' ? 'RTL' : 'LTR'}</span></div>`;
+      121 +
+      122 +  const footer = forPrint
+      123 +    ? `<div class="pdf-ftr">GT-MARKDAWIN — SalehGNUTUX — GPL-2.0 — ${date}</div>`
+      124 +    : '';
+      125 +
+      126 +  return `<!DOCTYPE html>
+      127 +<html lang="ar" dir="${direction}">
+      128 +<head>
+      129 +  <meta charset="UTF-8">
+      130 +  <meta name="viewport" content="width=device-width,initial-scale=1">
+      131 +  <title>GT-MARKDAWIN${date ? ` — ${date}` : ''}</title>
+      132 +  <style>${css}${pdfHeaderCSS}${KATEX_CSS}</style>
+      133 +</head>
+      134 +<body><div class="wrap">
+      135 +${header}
+      136 +${rendered}
+      137 +${footer}
+      138 +</div></body></html>`;
+      139 +}
+      140 +
+      141  // ── Export Markdown ───────────────────────────────────────────────────────────
+      142  type NotifyFn = (m: string, t?: string) => void;
+      143 +
+      144  export async function exportMarkdown(content: string, notify?: NotifyFn) {
+      145    const filename = `مستند-${getMoroccanTimestamp()}.md`;
+      146
+      147    if (isElectron()) {
+      148      const res = await window.electronAPI!.saveFile({ defaultName: filename, content });
+      109 -    if (res.success) notify?.(`تم الحفظ: ${res.path}`, 'success');
+      149 +    if (res.success) notify?.(`تم الحفظ ✅: ${res.path}`, 'success');
+      150      return;
+      151    }
+      152
+      153    downloadBlob(new Blob([content], { type: 'text/markdown;charset=utf-8' }), filename);
+      154 +  notify?.('تم حفظ ملف Markdown', 'success');
+      155  }
+      156
+      157  // ── Export HTML ───────────────────────────────────────────────────────────────
+     ...
+      161  ) {
+      162    const rendered = renderMarkdown(content);
+      163    const date = getMoroccanDateFormatted();
+      123 -  const css = sharedCSS(theme, direction, fontFamily);
+      164    const filename = `مستند-${getMoroccanTimestamp()}.html`;
+      165 +  const html = buildHTML({ rendered, direction, fontFamily, theme, date });
+      166
+      126 -  const html = `<!DOCTYPE html>
+      127 -<html lang="ar" dir="${direction}">
+      128 -<head>
+      129 -  <meta charset="UTF-8">
+      130 -  <meta name="viewport" content="width=device-width,initial-scale=1">
+      131 -  <title>GT-MARKDAWIN — ${date}</title>
+      132 -  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
+      133 -  <style>${css}
+      134 -    .meta{font-size:.8em;color:#8b949e;border-bottom:1px solid;padding-bottom:.75em;margin-bottom:1.5em;
+      135 -      display:flex;gap:1em;flex-wrap:wrap}
+      136 -  </style>
+      137 -</head>
+      138 -<body><div class="wrap">
+      139 -  <div class="meta">
+      140 -    <span>GT-MARKDAWIN v3.0</span>
+      141 -    <span>📅 ${date}</span>
+      142 -    <span>${direction === 'rtl' ? 'RTL' : 'LTR'}</span>
+      143 -  </div>
+      144 -  ${rendered}
+      145 -</div></body></html>`;
+      146 -
+      167    if (isElectron()) {
+      168      const res = await window.electronAPI!.saveFile({ defaultName: filename, content: html });
+      149 -    if (res.success) notify?.(`تم التصدير: ${res.path}`, 'success');
+      169 +    if (res.success) notify?.(`تم تصدير HTML ✅: ${res.path}`, 'success');
+      170      return;
+      171    }
+      172
+      173    downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), filename);
+      174 +  notify?.('تم تصدير HTML', 'success');
+      175  }
+      176
+      177  // ── Export PDF ────────────────────────────────────────────────────────────────
+     ...
+      183    const date = getMoroccanDateFormatted();
+      184
+      185    if (isElectron()) {
+      165 -    // ── Electron: use printToPDF with embedded font ──────────────────────────
+      186 +    // ── Electron: IPC → Chromium printToPDF, embedded font, fully offline ──
+      187      notify?.('جاري إعداد PDF...', 'info');
+      188
+      168 -    // Try to embed the selected font as base64
+      169 -    let fontB64: string | null = null;
+      170 -    const fontMap: Record<string, string> = {
+      171 -      'Ubuntu Arabic':    'fonts/Ubuntu Arabic Regular.otf',
+      172 -      'Amiri Quran':      'fonts/amiri-quran.ttf',
+      173 -      'Noto Sans Arabic': 'fonts/NotoSansArabic-Regular.ttf',
+      174 -      'Uthmanic Hafs':    'fonts/UthmanicHafs1 Ver13.otf',
+      189 +    // Try to get the selected font as base64 for embedding
+      190 +    const FONT_MAP: Record<string, string> = {
+      191 +      'Ubuntu Arabic':       'fonts/Ubuntu Arabic Regular.otf',
+      192 +      'Amiri Quran':         'fonts/amiri-quran.ttf',
+      193 +      'Amiri Quran Colored': 'fonts/amiri-quran-colored.ttf',
+      194 +      'Noto Sans Arabic':    'fonts/NotoSansArabic-Regular.ttf',
+      195 +      'Uthmanic Hafs':       'fonts/UthmanicHafs1 Ver13.otf',
+      196 +      'Arslan Wessam':       'fonts/(A) Arslan Wessam A (A) Arslan Wessam A.ttf',
+      197      };
+      176 -    const fontRelPath = fontMap[fontFamily] ?? fontMap['Noto Sans Arabic'];
+      177 -    fontB64 = await window.electronAPI!.getFontBase64(fontRelPath);
+      198 +    const fontRelPath = FONT_MAP[fontFamily] ?? FONT_MAP['Noto Sans Arabic'];
+      199 +    const fontB64 = await window.electronAPI!.getFontBase64(fontRelPath).catch(() => null);
+      200
+      179 -    const css = sharedCSS('light', direction, fontFamily, true, fontB64);
+      201 +    const html = buildHTML({ rendered, direction, fontFamily, fontB64, forPrint: true, date });
+      202
+      181 -    const html = `<!DOCTYPE html>
+      182 -<html dir="${direction}">
+      183 -<head>
+      184 -  <meta charset="UTF-8">
+      185 -  <title>GT-MARKDAWIN PDF</title>
+      186 -  <style>
+      187 -    @page{margin:25mm 20mm}
+      188 -    ${css}
+      189 -    body{background:#fff;color:#000;padding:0}
+      190 -    .wrap{max-width:none}
+      191 -    .pdf-header{border-bottom:2pt solid #333;padding-bottom:6pt;margin-bottom:16pt;
+      192 -      font-size:9pt;color:#555;display:flex;justify-content:space-between;flex-wrap:wrap}
+      193 -    .pdf-header strong{font-size:10pt;color:#000}
+      194 -    .pdf-footer{border-top:1pt solid #333;margin-top:16pt;padding-top:4pt;
+      195 -      font-size:8pt;color:#888;text-align:center}
+      196 -    pre,code{font-size:9pt}
+      197 -  </style>
+      198 -</head>
+      199 -<body><div class="wrap">
+      200 -  <div class="pdf-header">
+      201 -    <strong>GT-MARKDAWIN v3.0 — مارك دَ وِّ  نْ مُحَ   رِّ  رٌ عَرَبِ    يٌّ   عَصْرِ   يٌّ  </strong>
+      202 -    <span>📅 ${date} | ${direction === 'rtl' ? 'RTL' : 'LTR'}</span>
+      203 -  </div>
+      204 -  ${rendered}
+      205 -  <div class="pdf-footer">GT-MARKDAWIN — SalehGNUTUX — GPL-2.0 — ${date}</div>
+      206 -</div></body></html>`;
+      207 -
+      203      const res = await window.electronAPI!.printToPDF(html);
+      204      if (res.success) {
+      205        notify?.(`✅ تم حفظ PDF: ${res.path}`, 'success');
+      206      } else if (res.error !== 'cancelled') {
+      212 -      notify?.(`❌ فشل PDF: ${res.error}`, 'error');
+      207 +      notify?.(`❌ فشل تصدير PDF: ${res.error}`, 'error');
+      208      }
+      209      return;
+      210    }
+      211
+      217 -  // ── Browser: open print dialog ───────────────────────────────────────────
+      218 -  const css = sharedCSS('light', direction, fontFamily);
+      219 -  const win = window.open('', '_blank');
+      220 -  if (!win) { notify?.('تعذّر فتح نافذة الطباعة', 'error'); return; }
+      212 +  // ── Browser fallback: blob URL + window.print() ──────────────────────────
+      213 +  const html = buildHTML({ rendered, direction, fontFamily, forPrint: true, date });
+      214 +  const printHtml = html.replace('</body>', `
+      215 +  <script>
+      216 +    window.addEventListener('load', function() {
+      217 +      setTimeout(function(){ window.print(); }, 400);
+      218 +    });
+      219 +  <\/script>
+      220 +  </body>`);
+      221
+      222 -  win.document.write(`<!DOCTYPE html>
+      223 -<html dir="${direction}">
+      224 -<head>
+      225 -  <meta charset="UTF-8">
+      226 -  <title>GT-MARKDAWIN — طباعة</title>
+      227 -  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+      228 -  <style>
+      229 -    @page{margin:25mm 20mm}
+      230 -    ${css}
+      231 -    body{background:#fff;color:#000;padding:0}
+      232 -    .pdf-header{border-bottom:2pt solid #333;padding-bottom:5pt;margin-bottom:14pt;
+      233 -      font-size:9pt;color:#555;display:flex;justify-content:space-between;flex-wrap:wrap}
+      234 -    .pdf-footer{border-top:1pt solid #aaa;margin-top:14pt;padding-top:4pt;
+      235 -      font-size:8pt;color:#888;text-align:center}
+      236 -  </style>
+      237 -</head>
+      238 -<body><div class="wrap">
+      239 -  <div class="pdf-header">
+      240 -    <strong>GT-MARKDAWIN v3.0</strong>
+      241 -    <span>${date} | ${direction === 'rtl' ? 'RTL' : 'LTR'}</span>
+      242 -  </div>
+      243 -  ${rendered}
+      244 -  <div class="pdf-footer">GT-MARKDAWIN — SalehGNUTUX — GPL-2.0 — ${date}</div>
+      245 -</div>
+      246 -<script>window.addEventListener('load',()=>{setTimeout(()=>{window.print();window.close()},400)})<\/script>
+      247 -</body></html>`);
+      248 -  win.document.close();
+      249 -  notify?.('جاري فتح نافذة الطباعة...', 'info');
+      222 +  const blob = new Blob([printHtml], { type: 'text/html;charset=utf-8' });
+      223 +  const url  = URL.createObjectURL(blob);
+      224 +  const win  = window.open(url, '_blank');
+      225 +
+      226 +  if (!win) {
+      227 +    // Last resort: download as HTML
+      228 +    notify?.('تعذّر فتح نافذة الطباعة — جاري تنزيل HTML بدلاً من ذلك', 'warning');
+      229 +    downloadBlob(new Blob([printHtml], { type: 'text/html' }), `مستند-${getMoroccanTimestamp()}-print.html`);
+      230 +  } else {
+      231 +    notify?.('جاري فتح مربع الطباعة...', 'info');
+      232 +    win.addEventListener('afterprint', () => {
+      233 +      URL.revokeObjectURL(url);
+      234 +    });
+      235 +  }
+      236  }
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && npm run build 2>&1 | grep -E "(error|✓ built)" | head -5)
+  ⎿  src/lib/export.ts(3,25): error TS2307: Cannot find module 'katex/dist/katex.min.css?inline' or its corresponding type declarations.
+  ⎿  (timeout 2m)
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(src/types/vite-env.d.ts)
+  ⎿  Wrote 12 lines to src/types/vite-env.d.ts
+       1 /// <reference types="vite/client" />
+       2
+       3 // Allow importing CSS files as raw strings via ?inline query
+       4 declare module '*?inline' {
+       5   const content: string;
+       6   export default content;
+       7 }
+       8
+       9 declare module '*?raw' {
+      10   const content: string;
+     … +2 lines (ctrl+o to expand)
+
+● Bash(cd "/mnt/81d4e25b-45b1-43fd-917c-57799e706dc7/برامج و أنظمة/MY SCREPT/GT-MARKDAWIN" && npm run build 2>&1 | grep -E "(error|✓ built)" | head -5)
+  ⎿  ✓ built in 55.14s
+  ⎿  (timeout 2m)
+  ⎿  You've hit your limit · resets 10:50pm (Africa/Casablanca)
+
+✻ Cogitated for 18m 40s
+
+❯ /rate-limit-options
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  What do you want to do?
+
+  ❯ 1. Stop and wait for limit to reset
+    2. Upgrade your plan
+    3. Upgrade to Team plan
+

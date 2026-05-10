@@ -1,0 +1,135 @@
+{
+  "name": "gt-markdawin",
+  "version": "3.0.0",
+  "description": "محرر مارك داون عربي عصري — Modern Arabic Markdown Editor",
+  "author": "SalehGNUTUX <gnutux.arabic@gmail.com>",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/SalehGNUTUX/GT-MARKDAWIN",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "concurrently -n renderer,electron -c cyan,yellow \"vite\" \"sleep 3 && NODE_ENV=development electron .\"",
+    "build": "tsc -b && vite build",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:linux": "npm run build && electron-builder --linux AppImage deb",
+    "preview": "vite preview --port 3000",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:build": "npm run build && npx cap sync android && npx cap build android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.21",
+    "lucide-react": "^0.469.0",
+    "marked": "^15.0.7",
+    "marked-highlight": "^2.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.1",
+    "electron": "^33.4.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.gnutux.gt-markdawin",
+    "productName": "GT-MARKDAWIN",
+    "copyright": "Copyright © 2026 SalehGNUTUX. GNU GPL v3",
+    "asar": true,
+    "asarUnpack": [
+      "dist/fonts/**",
+      "dist/emojis/**"
+    ],
+    "files": [
+      "dist/**",
+      "electron/main.cjs",
+      "electron/preload.cjs",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icons/",
+      "category": "Office;TextEditor",
+      "description": "محرر مارك داون عربي عصري — Modern Arabic Markdown Editor",
+      "maintainer": "SalehGNUTUX <gnutux.arabic@gmail.com>",
+      "desktop": {
+        "Name": "GT-MARKDAWIN",
+        "Comment": "Modern Arabic Markdown Editor",
+        "Keywords": "markdown;editor;arabic;rtl;",
+        "Categories": "Office;TextEditor;Development;",
+        "MimeType": "text/markdown;text/x-markdown;text/plain;"
+      },
+      "mimeTypes": [
+        "text/markdown",
+        "text/x-markdown",
+        "text/plain"
+      ]
+    },
+    "appImage": {
+      "artifactName": "GT-MARKDAWIN-${version}-${arch}.AppImage"
+    },
+    "deb": {
+      "artifactName": "GT-MARKDAWIN_${version}_${arch}.deb",
+      "depends": [
+        "libgtk-3-0",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0"
+      ]
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown File",
+        "description": "Markdown document",
+        "mimeType": "text/markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown File",
+        "description": "Markdown document",
+        "mimeType": "text/markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": "txt",
+        "name": "Text File",
+        "description": "Plain text document",
+        "mimeType": "text/plain",
+        "role": "Editor"
+      }
+    ]
+  }
+}
