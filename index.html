@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>GT-MARKDAWIN | مارك دَوِّنْ - محرر عربي عصري</title>
+  <meta name="description" content="محرر Markdown عربي متكامل، مستقل، يعمل دون اتصال بالإنترنت. حرر نصوصك العربية باحترافية مع GT-MARKDAWIN.">
+  <meta name="theme-color" content="#0d2259">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #fefefe;
+      --surface: #ffffff;
+      --text: #0d2259;
+      --text-secondary: #1a3a6b;
+      --primary: #3070b1;
+      --primary-light: #b8d3f3;
+      --accent: #57cbfb;
+      --border: rgba(48, 112, 177, 0.15);
+      --shadow: 0 8px 32px rgba(13, 34, 89, 0.08);
+      --card-bg: #ffffff;
+      --code-bg: #f0f5fc;
+      --header-bg: rgba(254, 254, 254, 0.85);
+      --badge-bg: #e8f0fa;
+      --badge-text: #0d2259;
+      --divider: #e0e8f2;
+      --font-ar: 'Noto Sans Arabic', sans-serif;
+      --font-en: 'Inter', sans-serif;
+    }
+
+    body.dark {
+      --bg: #0a1628;
+      --surface: #112240;
+      --text: #e6ecf5;
+      --text-secondary: #b8c7dd;
+      --primary: #57cbfb;
+      --primary-light: #3070b1;
+      --accent: #b8d3f3;
+      --border: rgba(87, 203, 251, 0.2);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --card-bg: #112240;
+      --code-bg: #1a2d47;
+      --header-bg: rgba(10, 22, 40, 0.9);
+      --badge-bg: #1a3355;
+      --badge-text: #b8d3f3;
+      --divider: #1e3a5f;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ar);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.8rem 0;
+      transition: background 0.3s;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-img {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary-light), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: #0d2259;
+      box-shadow: 0 2px 8px rgba(48,112,177,0.3);
+    }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo-text span {
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: block;
+      line-height: 1.2;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .lang-switch, .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-en);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      backdrop-filter: blur(4px);
+    }
+    .lang-switch:hover, .theme-toggle:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: #0d2259;
+    }
+
+    body.dark .lang-switch:hover,
+    body.dark .theme-toggle:hover {
+      background: #1e3a5f;
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 3.5rem 0 3rem;
+      text-align: center;
+    }
+    .hero-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      border-radius: 28px;
+      background: linear-gradient(145deg, var(--primary-light), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(48,112,177,0.3);
+    }
+    .hero-icon img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 7vw, 3.8rem);
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+    .hero .subtitle {
+      font-size: 1.3rem;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 650px;
+      margin: 0 auto 1.8rem;
+    }
+    .badge-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-top: 1.2rem;
+    }
+    .badge {
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      padding: 0.4rem 1.1rem;
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.8rem 1.8rem;
+      border-radius: 2.5rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.25s;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 6px 18px rgba(48,112,177,0.35);
+    }
+    .btn:hover {
+      background: #0d2259;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(13,34,89,0.4);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      box-shadow: none;
+      font-weight: 600;
+    }
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Download Cards */
+    .section-title {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 3rem 0 1.5rem;
+      text-align: center;
+      color: var(--text);
+    }
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    .download-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.8rem 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .download-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 20px 30px rgba(13,34,89,0.15);
+    }
+    .card-icon {
+      font-size: 2.8rem;
+      margin-bottom: 0.3rem;
+    }
+    .card-title {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--text);
+    }
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .card-link {
+      margin-top: 0.5rem;
+      background: var(--primary-light);
+      color: #0d2259;
+      padding: 0.5rem 1.4rem;
+      border-radius: 2rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: 0.2s;
+    }
+    .card-link:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Web use */
+    .web-demo-box {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 2rem;
+      margin: 2rem 0;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--divider);
+      padding: 2.5rem 0 2rem;
+      margin-top: 3rem;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    .social-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.2rem;
+      margin: 1.2rem 0;
+    }
+    .social-links a {
+      color: var(--text);
+      background: var(--surface);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      transition: 0.2s;
+    }
+    .social-links a:hover {
+      background: var(--primary-light);
+      color: #0d2259;
+    }
+    .footer-note {
+      font-size: 0.85rem;
+      margin-top: 1.2rem;
+    }
+
+    [dir="ltr"] .logo-text span {
+      font-family: var(--font-en);
+    }
+    body[dir="ltr"] {
+      font-family: var(--font-en);
+    }
+
+    @media (max-width: 640px) {
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .controls {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="#" class="logo-area">
+        <div class="logo-img">م</div>
+        <div class="logo-text">GT-MARKDAWIN <span>مارك دَوِّنْ · محرر عربي عصري</span></div>
+      </a>
+      <div class="controls">
+        <button class="lang-switch" id="langToggle" aria-label="Switch language">🇬🇧 English</button>
+        <button class="theme-toggle" id="themeToggle" aria-label="تبديل السمة">🌙 داكن</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-icon">
+        <img src="https://github.com/SalehGNUTUX/GT-MARKDAWIN/blob/main/GT-MARKDAWIN-NEW-ICON.png?raw=true" alt="GT-MARKDAWIN أيقونة" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=font-size:3rem;>م</span>';">
+      </div>
+      <h1>GT-MARKDAWIN</h1>
+      <div class="subtitle" id="heroTagline">مارك دَوِّنْ — محرر عربي عصري</div>
+      <p id="heroDesc">محرر Markdown عربي متكامل، مستقل، يعمل دون اتصال بالإنترنت. مبني بـ Electron · React · TypeScript · Capacitor</p>
+      <div class="badge-group">
+        <span class="badge">🌟 v3.0.0</span>
+        <span class="badge">🐧 Linux</span>
+        <span class="badge">🤖 Android</span>
+        <span class="badge">🔒 خصوصية تامة</span>
+      </div>
+      <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+        <a href="#downloads" class="btn">⬇️ تنزيل الإصدارات</a>
+        <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank" class="btn btn-outline">📁 GitHub</a>
+      </div>
+    </section>
+
+    <!-- Web Demo -->
+    <section>
+      <div class="web-demo-box">
+        <h2 style="margin-bottom: 1rem;" id="webDemoTitle">🚀 جرب النسخة المباشرة (أحدث إصدار)</h2>
+        <p id="webDemoDesc">استخدم المحرر مباشرة من المتصفح دون تثبيت.</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem;">
+          <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/dist/index.html" target="_blank" class="btn">✨ الإصدار 3.0 (مباشر)</a>
+          <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN/blob/main/GT-MARKDAWIN-v2.0/index.html" target="_blank" class="btn btn-outline">📝 الإصدار 2.0</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Downloads -->
+    <h2 class="section-title" id="downloadsTitle">📦 تنزيل الإصدارات</h2>
+    <div class="download-grid" id="downloadGrid">
+      <!-- filled by JS -->
+    </div>
+
+    <div style="text-align: center; margin: 2rem 0;">
+      <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases" target="_blank" class="btn-outline" style="padding:0.7rem 2rem; border-radius:2rem; text-decoration:none; font-weight:600;">📂 جميع الإصدارات على GitHub</a>
+    </div>
+
+    <!-- Links section -->
+    <div style="background: var(--card-bg); border-radius: 20px; padding: 2rem; margin: 2.5rem 0; border:1px solid var(--border);">
+      <h3 style="margin-bottom:1rem;">🔗 روابط المشروع والمجتمع</h3>
+      <div class="social-links" style="justify-content: flex-start;">
+        <a href="https://salehgnutux.github.io/GT-NEWSTECH" target="_blank">📰 أخبار غنوتوكس</a>
+        <a href="https://salehgnutux.github.io/gnutux/" target="_blank">🌐 مشاريع غنوتوكس</a>
+        <a href="https://gnutux.surge.sh/" target="_blank">🚀 غنوتوكس Surge</a>
+        <a href="https://bassam.social/@gnutux_Arabic" target="_blank">🐘 بسام</a>
+        <a href="https://seewaan.com/@GNUTUX@seewaan.com" target="_blank">🔮 nostr</a>
+        <a href="https://tilvids.com/a/gnutux_linux/video-c..." target="_blank">🎬 tilvids</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="social-links">
+        <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank">⭐ GitHub</a>
+        <a href="https://youtube.com/@gnutux" target="_blank">▶️ YouTube</a>
+        <a href="https://linuxrocks.online/@gnutux" target="_blank">🐘 Mastodon</a>
+        <a href="https://odysee.com/@gnutux:5" target="_blank">🎥 Odysee</a>
+        <a href="https://twitter.com/GnuGnutux" target="_blank">𝕏 Twitter</a>
+        <a href="https://facebook.com/maroclinux" target="_blank">📘 Facebook</a>
+      </div>
+      <p class="footer-note">GT-MARKDAWIN © 2026 SalehGNUTUX · رخصة GPL-3.0 · صُنع بحب للمجتمع العربي</p>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      const body = document.body;
+      const html = document.documentElement;
+      
+      // Language & translations
+      const ar = {
+        heroTagline: 'مارك دَوِّنْ — محرر عربي عصري',
+        heroDesc: 'محرر Markdown عربي متكامل، مستقل، يعمل دون اتصال بالإنترنت. مبني بـ Electron · React · TypeScript · Capacitor',
+        webDemoTitle: '🚀 جرب النسخة المباشرة (أحدث إصدار)',
+        webDemoDesc: 'استخدم المحرر مباشرة من المتصفح دون تثبيت.',
+        downloadsTitle: '📦 تنزيل الإصدارات',
+        linuxAppImage: 'AppImage (جميع التوزيعات)',
+        linuxDeb: 'Debian / Ubuntu',
+        linuxRpm: 'Fedora / RHEL',
+        androidApk: 'Android APK',
+        flatpak: 'Flatpak',
+        allReleases: 'جميع الإصدارات',
+        darkMode: '🌙 داكن',
+        lightMode: '☀️ فاتح',
+        langBtn: '🇬🇧 English',
+        dir: 'rtl'
+      };
+      const en = {
+        heroTagline: 'GT-MARKDAWIN — Modern Arabic Editor',
+        heroDesc: 'A complete, offline-first Arabic Markdown editor. Built with Electron · React · TypeScript · Capacitor',
+        webDemoTitle: '🚀 Try Live Version (Latest)',
+        webDemoDesc: 'Use the editor directly in your browser without installation.',
+        downloadsTitle: '📦 Downloads',
+        linuxAppImage: 'AppImage (All distros)',
+        linuxDeb: 'Debian / Ubuntu',
+        linuxRpm: 'Fedora / RHEL',
+        androidApk: 'Android APK',
+        flatpak: 'Flatpak',
+        allReleases: 'All Releases',
+        darkMode: '🌙 Dark',
+        lightMode: '☀️ Light',
+        langBtn: '🇸🇦 العربية',
+        dir: 'ltr'
+      };
+
+      let currentLang = localStorage.getItem('markdawin-lang') || 'ar';
+      let currentTheme = localStorage.getItem('markdawin-theme') || 'auto';
+
+      function applyLang(lang) {
+        const t = lang === 'ar' ? ar : en;
+        document.getElementById('heroTagline').textContent = t.heroTagline;
+        document.getElementById('heroDesc').textContent = t.heroDesc;
+        document.getElementById('webDemoTitle').textContent = t.webDemoTitle;
+        document.getElementById('webDemoDesc').textContent = t.webDemoDesc;
+        document.getElementById('downloadsTitle').textContent = t.downloadsTitle;
+        document.getElementById('langToggle').innerHTML = t.langBtn;
+        document.getElementById('themeToggle').innerHTML = currentTheme === 'dark' ? '☀️ فاتح' : (currentTheme === 'light' ? '🌙 داكن' : '🌓 تلقائي');
+        html.dir = t.dir;
+        html.lang = lang;
+        currentLang = lang;
+        localStorage.setItem('markdawin-lang', lang);
+        renderDownloadCards(lang);
+      }
+
+      function applyTheme(theme) {
+        if (theme === 'dark') {
+          body.classList.add('dark');
+        } else if (theme === 'light') {
+          body.classList.remove('dark');
+        } else {
+          // auto
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          body.classList.toggle('dark', prefersDark);
+        }
+        const themeLabel = currentTheme === 'dark' ? '☀️ فاتح' : (currentTheme === 'light' ? '🌙 داكن' : '🌓 تلقائي');
+        document.getElementById('themeToggle').innerHTML = themeLabel;
+        localStorage.setItem('markdawin-theme', theme);
+      }
+
+      function cycleTheme() {
+        if (currentTheme === 'dark') currentTheme = 'light';
+        else if (currentTheme === 'light') currentTheme = 'auto';
+        else currentTheme = 'dark';
+        applyTheme(currentTheme);
+      }
+
+      // Download cards data
+      const downloads = [
+        { icon: '📦', key: 'linuxAppImage', url: 'https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/GT-MARKDAWIN-3.0.0-x86_64.AppImage', os: 'linux' },
+        { icon: '🔵', key: 'linuxDeb', url: 'https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/GT-MARKDAWIN_3.0.0_amd64.deb', os: 'linux' },
+        { icon: '🔴', key: 'linuxRpm', url: 'https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/GT-MARKDAWIN-3.0.0-x86_64.rpm', os: 'linux' },
+        { icon: '🤖', key: 'androidApk', url: 'https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/GT-MARKDAWIN-3.0.0.apk', os: 'android' },
+        { icon: '📦', key: 'flatpak', url: 'https://github.com/SalehGNUTUX/GT-MARKDAWIN/releases/download/GT-MARKDAWIN-3.0/GT-MARKDAWIN-3.0.0.flatpak', os: 'linux' }
+      ];
+
+      function renderDownloadCards(lang) {
+        const grid = document.getElementById('downloadGrid');
+        if (!grid) return;
+        const t = lang === 'ar' ? ar : en;
+        grid.innerHTML = downloads.map(d => {
+          const title = t[d.key] || d.key;
+          return `
+            <div class="download-card">
+              <div class="card-icon">${d.icon}</div>
+              <div class="card-title">${title}</div>
+              <div class="card-desc">GT-MARKDAWIN v3.0.0</div>
+              <a href="${d.url}" class="card-link" target="_blank" rel="noopener">⬇️ تنزيل</a>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Init
+      if (currentTheme === 'auto') {
+        applyTheme('auto');
+      } else {
+        body.classList.toggle('dark', currentTheme === 'dark');
+      }
+      applyLang(currentLang);
+      document.getElementById('themeToggle').addEventListener('click', cycleTheme);
+      document.getElementById('langToggle').addEventListener('click', () => {
+        applyLang(currentLang === 'ar' ? 'en' : 'ar');
+      });
+
+      // Listen for system theme changes in auto mode
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (currentTheme === 'auto') applyTheme('auto');
+      });
+    })();
+  </script>
+</body>
+</html>
