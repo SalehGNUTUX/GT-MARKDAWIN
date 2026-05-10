@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/icon.png" alt="GT-MARKDAWIN" width="140" />
+<img src="GT-MARKDAWIN-NEW-ICON.png" alt="GT-MARKDAWIN" width="256" />
 
 # GT-MARKDAWIN
 
