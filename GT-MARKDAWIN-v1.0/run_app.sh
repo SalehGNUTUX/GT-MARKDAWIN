@@ -1,0 +1,253 @@
+#!/bin/bash
+
+# =======================================================
+# GT-MARKDAWIN Unified Launcher, Stopper, and Cleaner
+# =======================================================
+
+PORT=8000
+# 🌟 التعديل هنا لتضمين index.html 🌟
+SERVER_ADDRESS="http://127.0.0.1:$PORT/index.html"
+PID_FILE="server.pid"
+
+# 🌟 التحديد التلقائي لمسار البيانات المؤقتة 🌟
+BASE_DIR="${APPDIR:-.}"
+DATA_DIR="$BASE_DIR/mnt/GTMarkdawinData"
+
+# -------------------------------------------------------
+# دالة إيقاف الخادم
+# -------------------------------------------------------
+stop_server() {
+    echo "==========================================="
+    echo "🛑 جاري إيقاف الخادم..."
+
+    if [ -f "$PID_FILE" ]; then
+        SERVER_PID=$(cat "$PID_FILE")
+        echo "إرسال إشارة الإيقاف (SIGTERM) إلى العملية $SERVER_PID..."
+        kill -TERM "$SERVER_PID" 2>/dev/null
+
+        sleep 1
+        if ! kill -0 "$SERVER_PID" 2> /dev/null; then
+            echo "✅ تم إيقاف الخادم بنجاح."
+            rm -f "$PID_FILE"
+            return 0
+        else
+            echo "⚠️ فشل الإيقاف بـ SIGTERM. الإيقاف القسري (SIGKILL)."
+            kill -9 "$SERVER_PID" 2>/dev/null
+            rm -f "$PID_FILE"
+            return 0
+        fi
+    else
+        echo "⚠️ لم يتم العثور على ملف PID. الخادم قد لا يكون قيد التشغيل."
+        return 1
+    fi
+}
+
+# -------------------------------------------------------
+# دالة تنظيف الملفات المؤقتة
+# -------------------------------------------------------
+cleanup_data() {
+    echo "==========================================="
+    echo "🧹 جاري تنظيف الملفات المؤقتة..."
+    # حذف مجلد البيانات المؤقتة بالكامل
+    if [ -d "$DATA_DIR" ]; then
+        rm -rf "$DATA_DIR"
+        echo "✅ تم حذف مجلد البيانات المؤقتة: $DATA_DIR"
+    else
+        echo "⚠️ مجلد البيانات المؤقتة $DATA_DIR غير موجود. لا حاجة للتنظيف."
+    fi
+    # حذف ملفات تثبيت الخطوط والإيموجي إن وجدت (يجب أن يتم تحديث هذه العلامات لاحقاً)
+    rm -f ./.fonts_installed ./.emojis_downloaded
+    echo "✅ تم تنظيف علامات التحميل (فقط)."
+}
+
+# -------------------------------------------------------
+# دالة فحص وتحميل الإيموجي (التعديل المطلوب)
+# -------------------------------------------------------
+check_and_download_emojis() {
+    EMOJIS_BASE_DIR="emojis"
+    SVG_DIR="$EMOJIS_BASE_DIR/svg"
+    PNG_DIR="$EMOJIS_BASE_DIR/72x72"
+    EMOJIS_JSON="emojis.json"
+    # مصدر Twemoji v14، بناءً على البيانات المستخرجة
+    TWEMOJI_CDN="https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets"
+
+    echo "============================================"
+    echo "🔍 فحص ملفات الإيموجي..."
+
+    # الشرط: فحص وجود مجلد الإيموجي الرئيسي والمجلدين الفرعيين (svg و 72x72)
+    if [[ -d "$EMOJIS_BASE_DIR" && -d "$SVG_DIR" && -d "$PNG_DIR" ]]; then
+        echo "✅ مجلدات الإيموجي موجودة ($SVG_DIR و $PNG_DIR). تخطي التحميل."
+        return 0
+    fi
+
+    # إذا لم تكن المجلدات موجودة، نبدأ بالتحميل
+    echo "⚠️ لم يتم العثور على مجلدات الإيموجي المطلوبة. جاري التحضير للتحميل."
+
+    # إنشاء المجلدات
+    mkdir -p "$SVG_DIR" "$PNG_DIR"
+
+    # التحقق من وجود ملف emojis.json لقائمة الإيموجي
+    if [[ ! -f "$EMOJIS_JSON" ]]; then
+        echo "❌ لا يمكن العثور على ملف $EMOJIS_JSON لتحديد الإيموجي المراد تحميلها."
+        echo "   الرجاء التأكد من وجوده في نفس المسار. لا يمكن المتابعة."
+        # حذف المجلدات الفارغة التي تم إنشاؤها
+        rmdir --ignore-fail-on-non-empty "$SVG_DIR" "$PNG_DIR" "$EMOJIS_BASE_DIR" 2>/dev/null
+        return 1
+    fi
+
+    # استخراج أسماء ملفات الإيموجي (مثل 1f004) من ملف JSON
+    # نستخدم jq لاستخراج قيم حقل 'name' - وهو الأكثر دقة
+    if command -v jq &> /dev/null; then
+        EMOJI_LIST=$(jq -r '.[].name' "$EMOJIS_JSON" 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$EMOJI_LIST" ]; then
+            echo "❌ فشل تحليل ملف $EMOJIS_JSON بواسطة jq. تحقق من صيغة الملف."
+            return 1
+        fi
+    elif command -v grep &> /dev/null && command -v sed &> /dev/null; then
+        # بديل لـ jq (أقل دقة ولكن قد يعمل) - البحث عن "name": "..."
+        echo "⚠️ لم يتم العثور على 'jq'. استخدام طريقة تحليل احتياطية (grep/sed)."
+        # استخدام grep و sed لاستخراج قيمة "name"
+        EMOJI_LIST=$(grep -o '"name": *"[^"]*"' "$EMOJIS_JSON" | sed 's/.*"\([^"]*\)".*/\1/g')
+        if [ -z "$EMOJI_LIST" ]; then
+            echo "❌ فشل تحليل ملف $EMOJIS_JSON بالطريقة الاحتياطية. لا يمكن المتابعة."
+            return 1
+        fi
+    else
+        echo "❌ لا يمكن تحليل ملف $EMOJIS_JSON. مطلوب إما 'jq' أو 'grep' و 'sed'."
+        return 1
+    fi
+
+    echo "📦 جاري تحميل ملفات الإيموجي (عدد الإدخالات: $(echo "$EMOJI_LIST" | wc -l))... قد يستغرق الأمر بعض الوقت."
+    # نستخدم wget للتحميل الصامت (q) مع إخفاء رسائل الأخطاء البسيطة
+    DOWNLOADED_COUNT=0
+
+    for filename in $EMOJI_LIST; do
+        SVG_URL="$TWEMOJI_CDN/svg/$filename.svg"
+        PNG_URL="$TWEMOJI_CDN/72x72/$filename.png"
+
+        # تحميل SVG
+        wget -q -O "$SVG_DIR/$filename.svg" "$SVG_URL"
+        if [ $? -eq 0 ]; then DOWNLOADED_COUNT=$((DOWNLOADED_COUNT + 1)); fi
+
+        # تحميل PNG (72x72)
+        wget -q -O "$PNG_DIR/$filename.png" "$PNG_URL"
+        if [ $? -eq 0 ]; then DOWNLOADED_COUNT=$((DOWNLOADED_COUNT + 1)); fi
+    done
+
+    # يتم تنزيل ملفين لكل إيموجي (SVG و PNG)، لذا يجب أن يكون العدد الإجمالي هو الضعف
+    TOTAL_EMOJIS=$(echo "$EMOJI_LIST" | wc -l)
+    EXPECTED_FILES=$((TOTAL_EMOJIS * 2))
+
+    echo ""
+    echo "============================================"
+    echo "📈 إحصائيات تحميل الإيموجي:"
+    echo "   عدد الإيموجي المكتشف في JSON: $TOTAL_EMOJIS"
+    echo "   عدد الملفات المتوقع تحميلها: $EXPECTED_FILES"
+    echo "   عدد الملفات التي تم تحميلها بنجاح: $DOWNLOADED_COUNT"
+
+    if [ "$DOWNLOADED_COUNT" -eq "$EXPECTED_FILES" ]; then
+        echo "✅ اكتمل تحميل جميع ملفات الإيموجي بنجاح."
+    elif [ "$DOWNLOADED_COUNT" -gt 0 ]; then
+        echo "⚠️ تم تحميل $DOWNLOADED_COUNT ملف إيموجي. قد تكون هناك ملفات مفقودة."
+    else
+        echo "❌ فشل تحميل أي ملفات إيموجي. تحقق من اتصالك بالإنترنت ومن أداة wget/curl."
+        return 1
+    fi
+
+    return 0
+}
+
+
+# -------------------------------------------------------
+# دالة بدء تشغيل الخادم
+# -------------------------------------------------------
+start_server() {
+    echo "==========================================="
+    echo "🚀 جاري تشغيل خادم بايثون 3 HTTP على المنفذ $PORT..."
+    echo "عنوان التشغيل: $SERVER_ADDRESS"
+
+    # استخدام & لتشغيل الخادم في الخلفية
+    python3 -m http.server $PORT &
+    SERVER_PID=$!
+    echo "$SERVER_PID" > "$PID_FILE"
+    echo "✅ تم تشغيل الخادم بالرقم التعريفي: $SERVER_PID"
+    return 0
+}
+
+# ------------------------------------------------------
+# 1. تهيئة وفحص البيانات (INITIALIZATION)
+# ------------------------------------------------------
+
+echo "==========================================="
+echo "⚙️ مرحلة التهيئة والفحص..."
+
+# 1.1 فحص وتحميل الإيموجي
+if ! check_and_download_emojis; then
+    echo "❌ فشل في فحص/تحميل ملفات الإيموجي. لا يمكن تشغيل التطبيق."
+    exit 1
+fi
+
+# (هنا يمكنك إضافة فحص الخطوط إذا كانت هناك حاجة لها)
+# # 1.2 فحص وتثبيت الخطوط
+# ensure_fonts_downloaded
+
+# 1.3 بدء تشغيل الخادم
+if ! start_server; then
+    echo "❌ فشل في بدء تشغيل الخادم. الخروج."
+    exit 1
+fi
+
+echo "============================================"
+echo "🌐 سيتم محاولة فتح المتصفح الآن..."
+
+# 1.4 فتح المتصفح على العنوان الصحيح
+if command -v xdg-open > /dev/null; then
+    xdg-open "$SERVER_ADDRESS"
+elif command -v open > /dev/null; then
+    open "$SERVER_ADDRESS"
+elif command -v start > /dev/null; then
+    start "$SERVER_ADDRESS"
+else
+    echo "⚠️ لم يتم العثور على أداة فتح المتصفح. الرجاء فتح المتصفح يدوياً على: $SERVER_ADDRESS"
+fi
+
+echo "============================================"
+echo "العمليات الداخلية للخادم ستظهر هنا..."
+echo "============================================"
+
+# ------------------------------------------------------
+# 2. حلقة الإغلاق والخيارات (SHUTDOWN LOOP)
+# ------------------------------------------------------
+PS3='الرجاء اختيار الإجراء المطلوب: '
+options=("إيقاف الخادم فقط (Stop Server Only)" "إيقاف الخادم وتنظيف الملفات المؤقتة (Stop & Cleanup)" "إلغاء الأمر والعودة (Cancel & Continue)")
+
+# حلقة عرض قائمة الاختيارات
+while true; do
+    echo ""
+    echo "============================================"
+    echo "خيارات الإغلاق: (اضغط الرقم ثم Enter)"
+    select choice in "${options[@]}"; do
+        case $choice in
+            "إيقاف الخادم فقط (Stop Server Only)")
+                stop_server
+                echo "تم الإغلاق. يمكنك الآن إغلاق هذه الطرفية."
+                exit 0
+                ;;
+            "إيقاف الخادم وتنظيف الملفات المؤقتة (Stop & Cleanup)")
+                stop_server
+                cleanup_data
+                echo "تم الإغلاق الآمن والتنظيف. يمكنك الآن إغلاق هذه الطرفية."
+                exit 0
+                ;;
+            "إلغاء الأمر والعودة (Cancel & Continue)")
+                echo "العودة إلى العمل. راقب هذه النافذة لرؤية مخرجات الخادم."
+                break
+                ;;
+            *)
+                echo "اختيار غير صالح. حاول مجدداً."
+                ;;
+        esac
+    done
+    # الانتظار حتى يحدث شيء في الخادم أو يضغط المستخدم على خيار آخر
+    sleep 3
+done

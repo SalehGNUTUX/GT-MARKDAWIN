@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GT-MARKDAWIN — محرر ماركداون متطور</title>
+  <meta name="description" content="مارك دَوِّنْ محرر عربي عصري" />
+  <meta name="theme-color" content="#0b0f13" />
+  
+  <!-- خطوط محلية بدلاً من Google Fonts -->
+  <style>
+    @font-face {
+      font-family: 'Amiri Quran';
+      src: url('fonts/ArbFONTS-Amiri-Quran.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Amiri Quran Colored';
+      src: url('fonts/amiri-quran-colored.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Uthmanic Hafs';
+      src: url('fonts/UthmanicHafs1 Ver13.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Arslan Wessam A';
+      src: url('fonts/(A) Arslan Wessam A.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Noto Sans Arabic';
+      src: url('fonts/NotoSansArabic-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Noto Sans Arabic Thin';
+      src: url('fonts/NotoSansArabic-Thin.ttf') format('truetype');
+      font-weight: 100;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Ubuntu Arabic';
+      src: url('fonts/Ubuntu Arabic Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Ubuntu Arabic Bold';
+      src: url('fonts/Ubuntu Arabic Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+  
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="gt-markdawin-icon.png" type="image/png" />
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="left-head">
+        <img src="gt-markdawin-icon.png" alt="GT-MARKDAWIN Logo" class="app-logo">
+        <div class="app-title-container">
+          <h1 class="app-title">GT-MARKDAWIN</h1>
+          <div class="subtitle">مارك دَوِّنْ محرر عربي عصري</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <select id="fontSelector" class="font-selector" title="اختيار الخط">
+          <option value="Ubuntu Arabic">Ubuntu Arabic (افتراضي)</option>
+          <option value="Amiri Quran">Amiri Quran (خط قرآني)</option>
+          <option value="Amiri Quran Colored">Amiri Quran Colored (ملون)</option>
+          <option value="Uthmanic Hafs">Uthmanic Hafs (عثماني)</option>
+          <option value="Arslan Wessam A">Arslan Wessam A (أسلان)</option>
+          <option value="Noto Sans Arabic">Noto Sans Arabic</option>
+          <option value="Noto Sans Arabic Thin">Noto Sans Arabic Thin</option>
+          <option value="Ubuntu Arabic Bold">Ubuntu Arabic Bold</option>
+          <option value="Arial">Arial</option>
+          <option value="system-ui">خط النظام</option>
+          <option value="__system__">افتراضي النظام (Ubuntu Arabic)</option>
+        </select>
+        <button id="importFontsBtn" class="btn-icon" title="استيراد/تحديث الخطوط">🧾</button>
+        <button id="emojiBtnHeader" class="btn-icon" title="الرموز التعبيرية">😊</button>
+        <button id="themeToggle" class="btn-icon" title="تبديل السمة">☀️</button>
+        <button id="dirToggle" class="btn-icon" title="تبديل اتجاه النص">↔</button>
+        <button id="fullscreenToggle" class="btn-icon" title="ملء الشاشة">⛶</button>
+      </div>
+    </header>
+
+    <nav class="toolbar" aria-label="شريط أدوات الماركداون">
+      <div class="toolbar-group">
+        <button data-cmd="undo" class="toolbar-btn toolbar-btn-small" title="تراجع (Ctrl+Z)">↶</button>
+        <button data-cmd="redo" class="toolbar-btn toolbar-btn-small" title="إعادة (Ctrl+Y)">↷</button>
+        <span class="toolbar-separator">|</span>
+        <button data-cmd="bold" class="toolbar-btn toolbar-btn-small" title="عريض (Ctrl+B)"><strong>B</strong></button>
+        <button data-cmd="italic" class="toolbar-btn toolbar-btn-small" title="مائل (Ctrl+I)"><em>I</em></button>
+        <button data-cmd="strikethrough" class="toolbar-btn toolbar-btn-small" title="خط في المنتصف"><s>S</s></button>
+        <button data-cmd="code" class="toolbar-btn toolbar-btn-small" title="كود inline">{\ }</button>
+        <button data-cmd="codeblock" class="toolbar-btn toolbar-btn-small" title="كتلة كود">```</button>
+        <button data-cmd="blockquote" class="toolbar-btn toolbar-btn-small" title="اقتباس">❝</button>
+        <button data-cmd="hr" class="toolbar-btn toolbar-btn-small" title="فاصل">―</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="h1" class="toolbar-btn toolbar-btn-small" title="عنوان رئيسي">H1</button>
+        <button data-cmd="h2" class="toolbar-btn toolbar-btn-small" title="عنوان فرعي">H2</button>
+        <button data-cmd="h3" class="toolbar-btn toolbar-btn-small" title="عنوان ثانوي">H3</button>
+        <button data-cmd="h4" class="toolbar-btn toolbar-btn-small" title="عنوان صغير">H4</button>
+        <button data-cmd="h5" class="toolbar-btn toolbar-btn-small" title="عنوان فرعي صغير">H5</button>
+        <button data-cmd="h6" class="toolbar-btn toolbar-btn-small" title="عنوان صغير جداً">H6</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="ul" class="toolbar-btn toolbar-btn-small" title="قائمة نقطية">•</button>
+        <button data-cmd="ol" class="toolbar-btn toolbar-btn-small" title="قائمة رقمية">1.</button>
+        <button data-cmd="task" class="toolbar-btn toolbar-btn-small" title="قائمة مهام">☑</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="table" class="toolbar-btn toolbar-btn-small" title="جدول">جدول</button>
+        <button data-cmd="link" class="toolbar-btn toolbar-btn-small" title="رابط">🔗</button>
+        <button data-cmd="image" class="toolbar-btn toolbar-btn-small" title="صورة">🖼</button>
+        <button data-cmd="video" class="toolbar-btn toolbar-btn-small" title="فيديو">🎬</button>
+        <button data-cmd="audio" class="toolbar-btn toolbar-btn-small" title="صوت">🔊</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="align-left" class="toolbar-btn toolbar-btn-small" title="محاذاة يسار">⇤</button>
+        <button data-cmd="align-center" class="toolbar-btn toolbar-btn-small" title="محاذاة وسط">↔</button>
+        <button data-cmd="align-right" class="toolbar-btn toolbar-btn-small" title="محاذاة يمين">⇥</button>
+        <button data-cmd="superscript" class="toolbar-btn toolbar-btn-small" title="نص علوي">ˣ</button>
+        <button data-cmd="subscript" class="toolbar-btn toolbar-btn-small" title="نص سفلي">ₓ</button>
+      </div>
+
+      <div class="toolbar-group">
+        <button data-cmd="gif" class="toolbar-btn toolbar-btn-small" title="صورة متحركة">🎞️</button>
+        <button data-cmd="math" class="toolbar-btn toolbar-btn-small" title="معادلة رياضية">∑</button>
+        <button data-cmd="footnote" class="toolbar-btn toolbar-btn-small" title="هامش">*</button>
+        <button data-cmd="definition" class="toolbar-btn toolbar-btn-small" title="تعريف">📖</button>
+      </div>
+    </nav>
+
+    <main class="editor-container split">
+      <div class="editor-panel">
+        <div class="panel-header">
+          <h3>✍️ الكتابة</h3>
+          <div class="editor-actions">
+            <button id="undoBtn" class="btn-secondary" title="تراجع (Ctrl+Z)">↶ تراجع</button>
+            <button id="redoBtn" class="btn-secondary" title="إعادة (Ctrl+Y)">↷ إعادة</button>
+            <button id="syncToggle" class="btn-secondary btn-sync" title="تفعيل/إلغاء مزامنة التحريك">🔗 مزامنة</button>
+            <button id="focusEditorBtn" class="btn-secondary" title="عرض النص فقط">🔍 تكبير المحرر</button>
+            <button id="clearBtn" class="btn-secondary">🗑️ مسح</button>
+          </div>
+        </div>
+        <textarea id="editor" placeholder="# مرحبًا بك في GT-MARKDAWIN v2.0
+
+اكتب نص ماركداون هنا...
+
+## مثال على النص العربي:
+هذا مثال على نص عربي في محرر ماركداون المتطور.
+
+### ميزات المحرر:
+- دعم كامل للغة العربية
+- تصدير إلى PDF بجودة عالية
+- معاينة فورية
+- رموز تعبيرية متنوعة وأعلام دول
+
+> هذا اقتباس من نص عربي
+
+```javascript
+// مثال على كود برمجي
+function hello() {
+    return 'مرحبًا بالعالم';
+}
+```"></textarea>
+      </div>
+
+      <div class="preview-panel">
+        <div class="panel-header">
+          <h3>👁️ المعاينة</h3>
+          <div class="preview-actions">
+            <button id="saveBtn" class="btn-success">💾 حفظ Markdown</button>
+            <button id="exportHtml" class="btn-secondary">🌐 HTML</button>
+            <button id="exportPdf" class="btn-secondary">📄 PDF</button>
+            <button id="loadBtn" class="btn-secondary">📂 فتح ملف</button>
+            <button id="focusPreviewBtn" class="btn-secondary" title="عرض المعاينة كاملة">🔍 تكبير المعاينة</button>
+          </div>
+        </div>
+        <div id="preview" class="preview-content">
+          <p class="preview-empty">اكتب شيئًا ليعرض هنا...</p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="status-bar footer">
+      <div class="status-info">
+        <span id="wordCount">الكلمات: 0</span>
+        <span id="charCount">الحروف: 0</span>
+        <span id="lineCount">السطور: 1</span>
+        <span id="currentDir">الاتجاه: RTL</span>
+      </div>
+      <div class="status-actions">
+        <!-- مساحة فارغة -->
+      </div>
+    </footer>
+
+    <div class="site-footer" role="contentinfo">
+      <small>مطور: SalehGNUTUX — <a href="https://github.com/SalehGNUTUX/GT-MARKDAWIN" target="_blank" rel="noopener">GitHub</a> — الإصدار 2.0</small>
+    </div>
+  </div>
+
+  <div id="emojiPanel" class="emoji-panel hidden" aria-hidden="true"></div>
+
+  <div id="linkModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🔗 إدراج رابط</h3>
+      <label>نص الرابط</label>
+      <input id="linkText" type="text" placeholder="نص الرابط (اختياري)" />
+      <label>رابط URL</label>
+      <input id="linkUrl" type="url" placeholder="https://example.com" />
+      <label>العنوان (عند المرور)</label>
+      <input id="linkTitle" type="text" placeholder="عنوان عند المرور (اختياري)" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelLink" class="btn-secondary">إلغاء</button>
+        <button id="insertLink" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="imageModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🖼️ إدراج صورة</h3>
+      <label>النص البديل</label>
+      <input id="imageAlt" type="text" placeholder="نص بديل للصورة" />
+      <label>رابط الصورة URL</label>
+      <input id="imageUrl" type="url" placeholder="https://example.com/image.png" />
+      <label>العنوان (عند المرور)</label>
+      <input id="imageTitle" type="text" placeholder="عنوان عند المرور (اختياري)" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelImage" class="btn-secondary">إلغاء</button>
+        <button id="insertImage" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="videoModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🎬 إدراج فيديو</h3>
+      <label>رابط الفيديو URL</label>
+      <input id="videoUrl" type="url" placeholder="https://example.com/video.mp4" />
+      <label>العنوان</label>
+      <input id="videoTitle" type="text" placeholder="عنوان الفيديو" />
+      <label>العرض (بكسل)</label>
+      <input id="videoWidth" type="number" placeholder="560" value="560" />
+      <label>الارتفاع (بكسل)</label>
+      <input id="videoHeight" type="number" placeholder="315" value="315" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelVideo" class="btn-secondary">إلغاء</button>
+        <button id="insertVideo" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="audioModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🔊 إدراج صوت</h3>
+      <label>رابط الملف الصوتي URL</label>
+      <input id="audioUrl" type="url" placeholder="https://example.com/audio.mp3" />
+      <label>النص البديل</label>
+      <input id="audioAlt" type="text" placeholder="وصف الملف الصوتي" />
+      <label>عرض التحكم</label>
+      <select id="audioControls">
+        <option value="true">إظهار عناصر التحكم</option>
+        <option value="false">إخفاء عناصر التحكم</option>
+      </select>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelAudio" class="btn-secondary">إلغاء</button>
+        <button id="insertAudio" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gifModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>🎞️ إدراج صورة متحركة (GIF)</h3>
+      <label>رابط GIF URL</label>
+      <input id="gifUrl" type="url" placeholder="https://example.com/animation.gif" />
+      <label>النص البديل</label>
+      <input id="gifAlt" type="text" placeholder="وصف الصورة المتحركة" />
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelGif" class="btn-secondary">إلغاء</button>
+        <button id="insertGif" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mathModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>∑ إدراج معادلة رياضية</h3>
+      <label>المعادلة الرياضية (LaTeX)</label>
+      <textarea id="mathEquation" placeholder="E = mc^2" rows="4"></textarea>
+      <label>النوع</label>
+      <select id="mathType">
+        <option value="inline">ضمن السطر</option>
+        <option value="block">كتلة منفصلة</option>
+      </select>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelMath" class="btn-secondary">إلغاء</button>
+        <button id="insertMath" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="footnoteModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content">
+      <h3>* إدراج هامش</h3>
+      <label>معرف الهامش</label>
+      <input id="footnoteId" type="text" placeholder="1" />
+      <label>نص الهامش</label>
+      <textarea id="footnoteText" placeholder="نص الهامش هنا..." rows="4"></textarea>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+        <button id="cancelFootnote" class="btn-secondary">إلغاء</button>
+        <button id="insertFootnote" class="btn-primary">إدراج</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="marked.umd.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
