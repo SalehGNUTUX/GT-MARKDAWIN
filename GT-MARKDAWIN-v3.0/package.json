@@ -1,6 +1,6 @@
 {
   "name": "gt-markdawin",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "محرر مارك داون عربي عصري — Modern Arabic Markdown Editor",
   "author": "SalehGNUTUX <gnutux.arabic@gmail.com>",
   "license": "GPL-3.0-or-later",
@@ -24,18 +24,22 @@
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/filesystem": "^8.1.2",
+    "fflate": "^0.8.3",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.21",
     "lucide-react": "^0.469.0",
+    "mammoth": "^1.12.0",
     "marked": "^15.0.7",
     "marked-highlight": "^2.2.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
     "@types/katex": "^0.16.7",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.5",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.2.1",
     "electron": "^33.4.1",
@@ -86,12 +90,15 @@
         "Comment": "Modern Arabic Markdown Editor",
         "Keywords": "markdown;editor;arabic;rtl;",
         "Categories": "Office;TextEditor;Development;",
-        "MimeType": "text/markdown;text/x-markdown;text/plain;"
+        "MimeType": "text/markdown;text/x-markdown;text/plain;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/msword;application/vnd.oasis.opendocument.text;"
       },
       "mimeTypes": [
         "text/markdown",
         "text/x-markdown",
-        "text/plain"
+        "text/plain",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "application/vnd.oasis.opendocument.text"
       ]
     },
     "appImage": {
@@ -128,6 +135,34 @@
         "name": "Text File",
         "description": "Plain text document",
         "mimeType": "text/plain",
+        "role": "Editor"
+      },
+      {
+        "ext": "docx",
+        "name": "Word Document",
+        "description": "Microsoft Word document",
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "role": "Editor"
+      },
+      {
+        "ext": "doc",
+        "name": "Word 97-2003 Document",
+        "description": "Legacy Microsoft Word document",
+        "mimeType": "application/msword",
+        "role": "Editor"
+      },
+      {
+        "ext": "odt",
+        "name": "OpenDocument Text",
+        "description": "OpenDocument text document",
+        "mimeType": "application/vnd.oasis.opendocument.text",
+        "role": "Editor"
+      },
+      {
+        "ext": "odf",
+        "name": "OpenDocument",
+        "description": "OpenDocument file",
+        "mimeType": "application/vnd.oasis.opendocument.text",
         "role": "Editor"
       }
     ]

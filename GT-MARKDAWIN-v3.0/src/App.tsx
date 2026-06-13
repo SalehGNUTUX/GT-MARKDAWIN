@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useApp } from './context';
+import { useApp, DEFAULT_CONTENT } from './context';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import Toolbar from './components/Toolbar';
@@ -16,6 +16,8 @@ import GifModal from './components/modals/GifModal';
 import MathModal from './components/modals/MathModal';
 import FootnoteModal from './components/modals/FootnoteModal';
 import TableModal from './components/modals/TableModal';
+import { exportMarkdown } from './lib/export';
+import { isOfficeFile, officeToMarkdown, base64ToArrayBuffer } from './lib/officeImport';
 
 // ── Detect environment ────────────────────────────────────────────────────────
 const isElectronEnv = () => typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
@@ -113,52 +115,116 @@ export default function App() {
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [content, autoSave]);
 
+  // Always-fresh content snapshot — avoids stale closures when files are opened
+  // in quick succession (the confirm dialog must compare the LATEST editor text).
+  const contentRef = useRef(content);
+  contentRef.current = content;
+
   // ── Helper: ask user to save before replacing content ─────────────────────
   const confirmBeforeOpen = useCallback((
     newContent: string,
     isHtml: boolean,
     fileName: string,
   ) => {
-    if (!content.trim() || content === localStorage.getItem('gt-md-default')) {
-      // Editor is empty — open directly
+    const current = contentRef.current;
+    if (!current.trim() || current === DEFAULT_CONTENT) {
+      // Editor is empty or still shows the untouched welcome text — open directly
       if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
       else setContent(newContent);
       notify(`تم فتح: ${fileName}`, 'success');
       return;
     }
 
+    const openNow = () => {
+      if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
+      else setContent(newContent);
+    };
+
     setConfirmDialog({
       title:   'هل تريد حفظ التغييرات الحالية؟',
       message: `ستُفتح "${fileName}" وسيُستبدل المحتوى الحالي.`,
       onSave: async () => {
+        // Save current content to storage first (native dialog on سطح المكتب)
+        const saved = await exportMarkdown(contentRef.current, notify as any);
+        // If the user cancelled the save dialog, keep the editor as-is and don't open
+        if (!saved) {
+          setConfirmDialog(null);
+          notify('أُلغي الحفظ — لم يُفتح الملف', 'info');
+          return;
+        }
         setConfirmDialog(null);
-        // Save current content first
-        await autoSave(content);
-        notify('تم الحفظ ✅', 'success');
-        if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
-        else setContent(newContent);
+        openNow();
         notify(`تم فتح: ${fileName}`, 'info');
       },
       onDiscard: () => {
         setConfirmDialog(null);
-        if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
-        else setContent(newContent);
+        openNow();
         notify(`تم فتح: ${fileName}`, 'success');
       },
       onCancel: () => setConfirmDialog(null),
     });
-  }, [content, autoSave, setContent, notify]);
+  }, [setContent, notify]);
+
+  // ── Shared open request (from المحرر / المعاينة open buttons) ─────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { content: c, isHtml, fileName } = (e as CustomEvent<{
+        content: string; isHtml: boolean; fileName: string;
+      }>).detail;
+      confirmBeforeOpen(c, isHtml, fileName);
+    };
+    document.addEventListener('gt-request-open', handler);
+    return () => document.removeEventListener('gt-request-open', handler);
+  }, [confirmBeforeOpen]);
+
+  // ── Ctrl+S → حفظ المستند (Markdown) ───────────────────────────────────────
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        exportMarkdown(contentRef.current, notify as any);
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [notify]);
 
   // ── Electron: listen for files opened via OS file manager ────────────────
   useEffect(() => {
     const api = window.electronAPI;
     if (!api?.onOpenFile) return;
-    api.onOpenFile(({ content: fileContent, isHtml, filePath }) => {
-      const name = filePath.split('/').pop() ?? filePath;
-      confirmBeforeOpen(fileContent, isHtml, name);
+    api.onOpenFile(async (data) => {
+      const name = (data.filePath?.split('/').pop()) ?? data.name ?? data.filePath;
+      if (data.office && data.dataBase64) {
+        // Office document delivered as base64 — convert to Markdown first
+        notify(`جارٍ تحويل: ${name}…`, 'info');
+        try {
+          const md = await officeToMarkdown({
+            name: data.name ?? name,
+            arrayBuffer: base64ToArrayBuffer(data.dataBase64),
+          });
+          confirmBeforeOpen(md, false, name);
+        } catch (err) {
+          notify(`تعذّر تحويل المستند: ${(err as Error).message}`, 'error');
+        }
+        return;
+      }
+      confirmBeforeOpen(data.content ?? '', !!data.isHtml, name);
     });
     return () => api.removeOpenFileListener?.();
   }, [confirmBeforeOpen]);
+
+  // ── Electron: signal the main process we're ready + surface open errors ──
+  // Must run AFTER the onOpenFile listener above is registered so any file the
+  // app was launched with ("Open with") is flushed only once we can receive it.
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api) return;
+    api.onOpenFileError?.((message: string) => {
+      notify(`تعذّر فتح الملف: ${message}`, 'error');
+    });
+    api.notifyReady?.();
+  }, [notify]);
 
   // ── Capacitor/Android: handle file opened from file manager ──────────────
   useEffect(() => {
@@ -262,11 +328,17 @@ export default function App() {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     try {
+      if (isOfficeFile(file.name)) {
+        notify(`جارٍ تحويل: ${file.name}…`, 'info');
+        const md = await officeToMarkdown({ name: file.name, arrayBuffer: await file.arrayBuffer() });
+        confirmBeforeOpen(md, false, file.name);
+        return;
+      }
       const text = await file.text();
       const isHtml = /\.(html?|htm)$/i.test(file.name);
       confirmBeforeOpen(text, isHtml, file.name);
     } catch (err) {
-      notify(`خطأ في قراءة الملف: ${String(err)}`, 'error');
+      notify(`خطأ في قراءة الملف: ${String((err as Error).message || err)}`, 'error');
     }
   }, [confirmBeforeOpen, notify]);
 
@@ -302,7 +374,7 @@ export default function App() {
           <div className="drag-message">
             <span>📂</span>
             <span>أفلت الملف هنا لفتحه</span>
-            <small>MD · TXT · HTML</small>
+            <small>MD · TXT · HTML · DOCX · DOC · ODT · ODF</small>
           </div>
         </div>
       )}

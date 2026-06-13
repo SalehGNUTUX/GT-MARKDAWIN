@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback, useState } from 'react';
-import { FileDown, FileCode2, Printer, FolderOpen, ZoomIn, ZoomOut } from 'lucide-react';
+import { FileDown, FileCode2, Printer, FolderOpen, ZoomIn, ZoomOut, ClipboardCopy, Copy } from 'lucide-react';
 import { useApp } from '../context';
 import { renderMarkdown } from '../lib/markdown';
 import { exportMarkdown, exportHTML, exportPDF } from '../lib/export';
@@ -66,6 +66,26 @@ export default function PreviewPanel({ style }: Props) {
   const doExportHTML = useCallback(() => exportHTML(content, theme, direction, fontFamily, n), [content, theme, direction, fontFamily, n]);
   const doExportPDF  = useCallback(() => exportPDF(content, direction, fontFamily, n), [content, direction, fontFamily, n]);
 
+  // ── Copy preview content ─────────────────────────────────────────────────────
+  const copyPreviewAll = useCallback(async () => {
+    const el = wrapRef.current?.querySelector('.preview-content') as HTMLElement | null;
+    const text = el?.innerText ?? '';
+    if (!text.trim()) { notify('المعاينة فارغة', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+      notify('تم نسخ محتوى المعاينة ✅', 'success');
+    } catch { notify('تعذّر النسخ', 'error'); }
+  }, [notify]);
+
+  const copyPreviewSelection = useCallback(async () => {
+    const sel = window.getSelection()?.toString() ?? '';
+    if (!sel.trim()) { notify('لا يوجد نص محدّد في المعاينة', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(sel);
+      notify('تم نسخ التحديد ✅', 'success');
+    } catch { notify('تعذّر النسخ', 'error'); }
+  }, [notify]);
+
   // ── Open file in preview ─────────────────────────────────────────────────────
   const handleOpenFile = useCallback(() => {
     const input = document.createElement('input');
@@ -79,7 +99,10 @@ export default function PreviewPanel({ style }: Props) {
         setHtmlOverride(text);
         notify(`تم عرض: ${file.name}`, 'success');
       } else {
-        notify('لفتح ملف نصي في المحرر، استخدم زر الفتح في لوحة المحرر', 'info');
+        // نصّ Markdown → افتحه في المحرر عبر تأكيد الحفظ المشترك
+        document.dispatchEvent(new CustomEvent('gt-request-open', {
+          detail: { content: text, isHtml: false, fileName: file.name },
+        }));
       }
     };
     input.click();
@@ -103,7 +126,13 @@ export default function PreviewPanel({ style }: Props) {
             <Printer size={13} />
             <span style={{ fontSize: '0.68rem', marginInlineStart: 2 }}>PDF</span>
           </button>
-          <button className="tb-btn" title="فتح ملف HTML في المعاينة" onClick={handleOpenFile}>
+          <button className="tb-btn" title="نسخ محتوى المعاينة كاملًا" onClick={copyPreviewAll}>
+            <ClipboardCopy size={13} />
+          </button>
+          <button className="tb-btn" title="نسخ المحدّد في المعاينة فقط" onClick={copyPreviewSelection}>
+            <Copy size={13} />
+          </button>
+          <button className="tb-btn" title="فتح ملف (HTML / MD / TXT)" onClick={handleOpenFile}>
             <FolderOpen size={13} />
           </button>
           <button

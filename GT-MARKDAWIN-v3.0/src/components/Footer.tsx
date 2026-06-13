@@ -11,7 +11,7 @@ export default function Footer() {
 
   return (
     <footer className="footer">
-      <span>GT-MARKDAWIN v3.0</span>
+      <span>GT-MARKDAWIN v3.1</span>
       <span>·</span>
       <a
         href="https://github.com/SalehGNUTUX/GT-MARKDAWIN"

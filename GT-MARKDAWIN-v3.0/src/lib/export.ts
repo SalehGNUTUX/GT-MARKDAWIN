@@ -143,13 +143,13 @@ ${footer}
 // ── Export Markdown ───────────────────────────────────────────────────────────
 type NotifyFn = (m: string, t?: string) => void;
 
-export async function exportMarkdown(content: string, notify?: NotifyFn) {
+export async function exportMarkdown(content: string, notify?: NotifyFn): Promise<boolean> {
   const filename = `مستند-${getMoroccanTimestamp()}.md`;
 
   if (isElectron()) {
     const res = await window.electronAPI!.saveFile({ defaultName: filename, content });
     if (res.success) notify?.(`تم الحفظ ✅: ${res.path}`, 'success');
-    return;
+    return !!res.success;
   }
 
   if (isCapacitor()) {
@@ -164,14 +164,16 @@ export async function exportMarkdown(content: string, notify?: NotifyFn) {
         encoding: Encoding.UTF8, // write as text, not base64
       });
       notify?.(`✅ تم الحفظ: Documents/${SAVE_DIR}/${filename}`, 'success');
+      return true;
     } catch (err) {
       notify?.(`❌ فشل الحفظ: ${String(err)}`, 'error');
+      return false;
     }
-    return;
   }
 
   downloadBlob(new Blob([content], { type: 'text/markdown;charset=utf-8' }), filename);
   notify?.('تم حفظ ملف Markdown', 'success');
+  return true;
 }
 
 // ── Export HTML ───────────────────────────────────────────────────────────────

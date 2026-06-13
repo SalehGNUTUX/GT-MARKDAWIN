@@ -13,7 +13,7 @@ import { insertAroundSelection } from './lib/insertText';
 
 // ─── Editor state (content + undo/redo) ──────────────────────────────────────
 
-const DEFAULT_CONTENT = `# مرحباً بك في GT-MarkDaWin 3.0 ✨
+export const DEFAULT_CONTENT = `# مرحباً بك في GT-MarkDaWin 3.0 ✨
 
 محرر **مارك داون** عصري ونظيف مبني بـ React وTypeScript.
 

@@ -64,7 +64,7 @@ Single `AppContext` (no Redux) holds all application state. Key design choices:
 ### App-level logic — `src/App.tsx`
 All cross-cutting concerns live here (not in context):
 - **Auto-save** (`SAVE_DIR = 'MARKDAWIN'`): debounced 30s, writes to `~/Documents/MARKDAWIN/auto-*.md`. Uses `Filesystem.writeFile({ encoding: Encoding.UTF8 })` on Android — never pass `'utf8' as any` (that writes base64, corrupting Arabic text).
-- **Confirm before open**: when the editor has content and a new file is dropped/imported, shows a 3-button dialog (Save / Discard / Cancel).
+- **Confirm before open**: every open path (in-app button, drag-drop, OS "Open with") funnels through `confirmBeforeOpen`. The in-app open buttons (editor + preview) dispatch a `gt-request-open` CustomEvent that App.tsx listens for — they do NOT call `setContent` directly. When the editor has real content (non-empty and ≠ `DEFAULT_CONTENT`) it shows a 3-button dialog (Save / Discard / Cancel); the Save path runs `exportMarkdown` (real save dialog on desktop) and aborts the open if the user cancels saving. `confirmBeforeOpen` reads the latest content via `contentRef` (not the `content` closure) so rapid successive opens compare against fresh text.
 - **Close confirmation**: Electron intercepts `beforeunload` with `isIntentionalClose` ref. When user confirms close, calls `window.electronAPI.forceClose()` → IPC `force-close` → `win.destroy()` on main process. **Do not use `window.close()` for the intentional close path** — it re-fires `beforeunload` causing an infinite loop.
 - **Android back button**: Capacitor `App.addListener('backButton')` shows the close confirmation dialog.
 
@@ -90,13 +90,23 @@ KaTeX CSS is imported as an inline string via `import katexCSS from 'katex/dist/
 **Android PDF path**: `window.print()` is not supported in Capacitor WebView. Instead, the HTML is saved to `Documents/MARKDAWIN/` as a `.html` file. The user opens it in Chrome and prints to PDF from there.
 
 ### Electron IPC — `electron/main.cjs`
-Four IPC handlers:
+IPC handlers:
 - `force-close`: calls `win.destroy()` — bypasses `beforeunload`, used when user confirms close dialog
 - `print-to-pdf`: creates hidden window, loads HTML as base64 data URL, prints to PDF, shows native save dialog
 - `save-file`: shows native save dialog, writes content to chosen path
 - `get-font-base64`: reads a font from `dist/fonts/` (unpacked from ASAR) and returns it as base64 for embedding in PDF
+- `convert-office`: receives `{name, dataBase64}`, writes a temp file, runs LibreOffice headless (`soffice --headless --convert-to html:"HTML (StarWriter)"`) into a temp profile dir, returns `{success, html}` or `{success:false, reason:'no-libreoffice'}` (see Office import below)
+- `renderer-ready` (on, not handle): the renderer signals it registered its `open-file` listener; main then flushes `pendingFileToOpen`
+
+**OS "Open with" handoff** (fixes "file doesn't open, shows default text"): a single-instance lock (`requestSingleInstanceLock`) routes a second launch's file through the `second-instance` event into the existing window. The file is delivered only after the renderer sends `renderer-ready` — never on a fixed timer (the old 500ms timer raced the React listener registration and dropped the message). `normalizeFilePath` converts `file://` URLs (some file managers pass these) to real paths. Office files are delivered as `{office:true, name, dataBase64}` for the renderer to convert.
 
 Fonts and emojis are listed in `asarUnpack` in `package.json` so they remain as real filesystem files (not inside the ASAR) — this is required for `get-font-base64` to read them with `fs.readFileSync`.
+
+### Office document import — `src/lib/officeImport.ts`
+Opens `.docx / .doc / .odt / .odf / .fodt` by converting them to **Markdown** for the editor. `officeToMarkdown({name, arrayBuffer})` is the single entry point used by every open path. Strategy:
+1. **Desktop (Electron)**: `window.electronAPI.convertOffice` → LibreOffice headless → HTML. Highest fidelity, the ONLY way to read legacy binary `.doc`.
+2. **JS fallback** (browser/Android, or desktop without LibreOffice): `.docx` via `mammoth` (lazy `import('mammoth')`); `.odt` via `fflate` (unzip `content.xml`) + a DOMParser walk (`odtXmlToHtml`) that maps `<text:h>` and Title/Heading-N paragraph styles to headings, `<text:span>` styles to bold/italic/underline, lists and tables. `.doc` has no JS fallback → clear error asking for LibreOffice.
+All HTML output is converted to Markdown with `turndown` (tables/sub/sup kept as raw HTML since `marked` renders them). Deps: `mammoth`, `turndown`, `fflate`.
 
 External links: `setWindowOpenHandler` opens `https?://` URLs via `shell.openExternal`. `will-navigate` prevents the main window from navigating away. `blob:` and `data:` URLs are allowed through for browser-mode print dialogs.
 

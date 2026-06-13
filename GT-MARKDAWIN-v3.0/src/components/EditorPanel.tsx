@@ -1,8 +1,10 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import {
-  Undo2, Redo2, RotateCcw, Trash2, ArrowUpDown, Search, FolderOpen,
+  Undo2, Redo2, Trash2, ArrowUpDown, Search, FolderOpen,
+  ClipboardCopy, Copy, ClipboardPaste, Eraser,
 } from 'lucide-react';
 import { useApp } from '../context';
+import { isOfficeFile, officeToMarkdown } from '../lib/officeImport';
 
 interface Props {
   style?: React.CSSProperties;
@@ -96,23 +98,31 @@ export default function EditorPanel({ style }: Props) {
   };
 
   // ── Open file ───────────────────────────────────────────────────────────────
-  const previewInjector = useRef<((html: string) => void) | null>(null);
-  // We communicate to PreviewPanel via a CustomEvent
+  // Route through App's confirm-before-open so the current content can be saved first
   const handleOpenFile = async () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.md,.txt,.markdown,.html,.htm';
+    input.accept = '.md,.txt,.markdown,.html,.htm,.docx,.doc,.odt,.odf,.fodt';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
-      const text = await file.text();
-      if (file.name.match(/\.(html?|htm)$/i)) {
-        // Show HTML in preview
-        document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: text }));
-        notify(`تم عرض في المعاينة: ${file.name}`, 'success');
-      } else {
-        setContent(text);
-        notify(`تم فتح: ${file.name}`, 'success');
+      try {
+        if (isOfficeFile(file.name)) {
+          // Office document → convert to Markdown, then open through confirm flow
+          notify(`جارٍ تحويل: ${file.name}…`, 'info');
+          const md = await officeToMarkdown({ name: file.name, arrayBuffer: await file.arrayBuffer() });
+          document.dispatchEvent(new CustomEvent('gt-request-open', {
+            detail: { content: md, isHtml: false, fileName: file.name },
+          }));
+          return;
+        }
+        const text = await file.text();
+        const isHtml = /\.(html?|htm)$/i.test(file.name);
+        document.dispatchEvent(new CustomEvent('gt-request-open', {
+          detail: { content: text, isHtml, fileName: file.name },
+        }));
+      } catch (err) {
+        notify(`تعذّر فتح الملف: ${(err as Error).message}`, 'error');
       }
     };
     input.click();
@@ -125,6 +135,60 @@ export default function EditorPanel({ style }: Props) {
       notify('تم مسح المحتوى', 'info');
     }
   };
+
+  // ── Replace current selection (or insert at cursor) with given text ───────────
+  const replaceSelection = useCallback((text: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const next = content.slice(0, start) + text + content.slice(end);
+    setContent(next);
+    const pos = start + text.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  }, [content, setContent, editorRef]);
+
+  // ── Clipboard tools ───────────────────────────────────────────────────────────
+  const copyAll = useCallback(async () => {
+    if (!content) { notify('المحرر فارغ', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(content);
+      notify('تم نسخ كامل النص ✅', 'success');
+    } catch { notify('تعذّر النسخ — استخدم Ctrl+C', 'error'); }
+  }, [content, notify]);
+
+  const copySelection = useCallback(async () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = content.slice(el.selectionStart, el.selectionEnd);
+    if (!sel) { notify('لا يوجد نص محدّد', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(sel);
+      notify('تم نسخ التحديد ✅', 'success');
+    } catch { notify('تعذّر النسخ — استخدم Ctrl+C', 'error'); }
+  }, [content, editorRef, notify]);
+
+  const pasteClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) { notify('الحافظة فارغة', 'info'); return; }
+      replaceSelection(text);
+      notify('تم اللصق ✅', 'success');
+    } catch { notify('تعذّر اللصق — استخدم Ctrl+V', 'error'); }
+  }, [replaceSelection, notify]);
+
+  const deleteSelection = useCallback(() => {
+    const el = editorRef.current;
+    if (!el || el.selectionStart === el.selectionEnd) {
+      notify('لا يوجد نص محدّد', 'info');
+      return;
+    }
+    replaceSelection('');
+    notify('تم مسح التحديد', 'info');
+  }, [editorRef, replaceSelection, notify]);
 
   return (
     <div className="panel" style={style}>
@@ -152,7 +216,19 @@ export default function EditorPanel({ style }: Props) {
           <button className="tb-btn" title="بحث واستبدال (Ctrl+F)" onClick={() => setShowFind(s => !s)}>
             <Search size={13} />
           </button>
-          <button className="tb-btn" title="فتح ملف (MD / TXT / HTML)" onClick={handleOpenFile}>
+          <button className="tb-btn" title="نسخ كامل النص" onClick={copyAll}>
+            <ClipboardCopy size={13} />
+          </button>
+          <button className="tb-btn" title="نسخ التحديد فقط" onClick={copySelection}>
+            <Copy size={13} />
+          </button>
+          <button className="tb-btn" title="لصق" onClick={pasteClipboard}>
+            <ClipboardPaste size={13} />
+          </button>
+          <button className="tb-btn" title="مسح التحديد" onClick={deleteSelection}>
+            <Eraser size={13} />
+          </button>
+          <button className="tb-btn" title="فتح ملف (MD · TXT · HTML · DOCX · DOC · ODT)" onClick={handleOpenFile}>
             <FolderOpen size={13} />
           </button>
           <button className="tb-btn" title="مسح المحتوى" onClick={handleClear}
