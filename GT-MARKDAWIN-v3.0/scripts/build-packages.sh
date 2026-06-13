@@ -596,6 +596,8 @@ build_rpm() {
       -C "$PKG_DIR" --transform "s|^\./|${APP_NAME}-${VERSION}/|" . 2>/dev/null
 
     cat > "$WORK/SPECS/${APP_NAME}.spec" << SPEC
+%global _unpackaged_files_terminate_build 0
+%global __os_install_post %{nil}
 Name:           ${APP_NAME}
 Version:        ${VERSION}
 Release:        1
@@ -624,6 +626,7 @@ cp -a "${APP_NAME}-${VERSION}/." %{buildroot}/
 /usr/share/applications/gt-markdawin.desktop
 /usr/share/icons
 /usr/share/doc
+/usr/share/mime/packages/gt-markdawin.xml
 
 %post
 update-desktop-database /usr/share/applications/ 2>/dev/null || true
@@ -782,7 +785,7 @@ build_apk() {
   # حاول release أولاً ثم debug
   inf "بناء Release APK..."
   if ./gradlew assembleRelease 2>&1 | tail -8 && \
-     APK_FILE=$(find "app/build/outputs/apk/release" -name "*.apk" 2>/dev/null | head -1) && \
+     APK_FILE=$(find "$ANDROID_DIR/app/build/outputs/apk/release" -name "*.apk" 2>/dev/null | head -1) && \
      [ -n "$APK_FILE" ]; then
     cd "$ROOT_DIR"
     mkdir -p "$RELEASE_DIR/android"
@@ -792,7 +795,7 @@ build_apk() {
   else
     inf "محاولة Debug APK..."
     ./gradlew assembleDebug 2>&1 | tail -5
-    APK_FILE=$(find "app/build/outputs/apk/debug" -name "*.apk" 2>/dev/null | head -1)
+    APK_FILE=$(find "$ANDROID_DIR/app/build/outputs/apk/debug" -name "*.apk" 2>/dev/null | head -1)
     cd "$ROOT_DIR"
     if [ -n "$APK_FILE" ]; then
       mkdir -p "$RELEASE_DIR/android"
