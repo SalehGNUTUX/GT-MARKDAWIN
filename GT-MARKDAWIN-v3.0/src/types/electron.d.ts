@@ -21,6 +21,7 @@ interface ElectronAPI {
   isElectron: true;
   printToPDF: (htmlContent: string) => Promise<{ success: boolean; path?: string; error?: string }>;
   saveFile: (opts: { defaultName: string; content: string; mimeType?: string }) => Promise<{ success: boolean; path?: string }>;
+  writeFile: (opts: { path: string; content: string }) => Promise<{ success: boolean; path?: string; error?: string }>;
   getFontBase64: (fontRelPath: string) => Promise<string | null>;
   convertOffice?: (opts: { name: string; dataBase64: string }) => Promise<OfficeConvertResult>;
   onOpenFile: (cb: (data: OpenFileData) => void) => void;

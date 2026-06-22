@@ -929,6 +929,7 @@ all)
   build_app
   build_electron_packages "AppImage deb"
   build_rpm
+  build_flatpak
   build_apk
   print_report
   ;;

@@ -10,7 +10,7 @@
 
 مبني بـ **Electron · React · TypeScript · Capacitor**
 
-[![الإصدار](https://img.shields.io/badge/الإصدار-3.1.0-0969da?style=flat-square)](package.json)
+[![الإصدار](https://img.shields.io/badge/الإصدار-3.2.0-0969da?style=flat-square)](package.json)
 [![الترخيص](https://img.shields.io/badge/الترخيص-GPL--3.0-1a7f37?style=flat-square)](LICENSE)
 [![Linux](https://img.shields.io/badge/Linux-AppImage%20·%20DEB%20·%20RPM%20·%20Flatpak-orange?style=flat-square)](#linux)
 [![Android](https://img.shields.io/badge/Android-APK-3ddc84?style=flat-square)](#android)
@@ -52,6 +52,12 @@
 | **highlight.js** | 11 | تمييز الكود البرمجي |
 
 ---
+
+## 🆕 ما الجديد في 3.2
+
+- **إعادة تصميم الحفظ التلقائي** — حفظ ذكيّ في الخلفية مباشرةً إلى الملف المفتوح **دون أي نافذة حفظ**، مع زرّ تفعيل/إلغاء واختيار الفاصل الزمني (10ث · 30ث · دقيقة · دقيقتان · 5د)، ومؤشّر «✓ حُفظ HH:MM:SS» أسفل البرنامج. يقترح التفعيل عند فتح ملف أو بدء مستند جديد، ولا يكتب أبداً فوق مستندات Office.
+- **أدوات القصّ في المحرر** — قصّ كامل النص · قصّ التحديد فقط (إضافةً إلى النسخ واللصق ومسح التحديد).
+- **تحسين تسميات شريط الأدوات العلوي** — تظهر الآن **فوق** الزرّ عند التمرير، فلا تحجب صفّ أزرار المحرّر والمعاينة تحتها.
 
 ## 🆕 ما الجديد في 3.1
 
@@ -113,12 +119,12 @@
 ### مجلد الإصدارات — كل الحزم في مكان واحد
 
 ```
-الإصدارات/v3.1.0/
-├── GT-MARKDAWIN-3.1.0.apk            ← Android
-├── GT-MARKDAWIN-3.1.0-x86_64.AppImage  ← Linux (جميع التوزيعات)
-├── GT-MARKDAWIN_3.1.0_amd64.deb       ← Ubuntu / Debian
-├── GT-MARKDAWIN-3.1.0-x86_64.rpm     ← Fedora / RHEL
-└── GT-MARKDAWIN-3.1.0.flatpak        ← Flatpak (جميع التوزيعات)
+الإصدارات/v3.2.0/
+├── GT-MARKDAWIN-3.2.0.apk            ← Android
+├── GT-MARKDAWIN-3.2.0-x86_64.AppImage  ← Linux (جميع التوزيعات)
+├── GT-MARKDAWIN_3.2.0_amd64.deb       ← Ubuntu / Debian
+├── GT-MARKDAWIN-3.2.0-x86_64.rpm     ← Fedora / RHEL
+└── GT-MARKDAWIN-3.2.0.flatpak        ← Flatpak (جميع التوزيعات)
 ```
 
 ---
@@ -128,13 +134,13 @@
 > لا يتطلب أي صلاحيات تثبيت. يعمل مباشرة على أي توزيعة.
 
 ```bash
-chmod +x GT-MARKDAWIN-3.1.0-x86_64.AppImage
-./GT-MARKDAWIN-3.1.0-x86_64.AppImage
+chmod +x GT-MARKDAWIN-3.2.0-x86_64.AppImage
+./GT-MARKDAWIN-3.2.0-x86_64.AppImage
 ```
 
 **تثبيت دائم في النظام (اختياري):**
 ```bash
-mv GT-MARKDAWIN-3.1.0-x86_64.AppImage ~/.local/bin/gt-markdawin
+mv GT-MARKDAWIN-3.2.0-x86_64.AppImage ~/.local/bin/gt-markdawin
 ```
 
 ---
@@ -142,7 +148,7 @@ mv GT-MARKDAWIN-3.1.0-x86_64.AppImage ~/.local/bin/gt-markdawin
 ### 🔵 DEB — Ubuntu / Debian / Linux Mint / Pop!_OS
 
 ```bash
-sudo dpkg -i GT-MARKDAWIN_3.1.0_amd64.deb
+sudo dpkg -i GT-MARKDAWIN_3.2.0_amd64.deb
 # حل الاعتماديات إن وجدت
 sudo apt-get install -f
 # تشغيل
@@ -160,10 +166,10 @@ sudo dpkg -r gt-markdawin
 
 ```bash
 # Fedora / RHEL (مع حل الاعتماديات تلقائياً)
-sudo dnf localinstall GT-MARKDAWIN-3.1.0-x86_64.rpm
+sudo dnf localinstall GT-MARKDAWIN-3.2.0-x86_64.rpm
 
 # openSUSE
-sudo zypper install --allow-unsigned-rpm GT-MARKDAWIN-3.1.0-x86_64.rpm
+sudo zypper install --allow-unsigned-rpm GT-MARKDAWIN-3.2.0-x86_64.rpm
 ```
 
 **إلغاء التثبيت:**
@@ -178,7 +184,7 @@ sudo dnf remove gt-markdawin
 
 ```bash
 # التثبيت
-flatpak install --user GT-MARKDAWIN-3.1.0.flatpak
+flatpak install --user GT-MARKDAWIN-3.2.0.flatpak
 
 # التشغيل
 flatpak run com.gnutux.GTMarkdaWin
@@ -202,7 +208,7 @@ flatpak run com.gnutux.GTMarkdaWin
 
 ```bash
 # عبر ADB
-adb install GT-MARKDAWIN-3.1.0.apk
+adb install GT-MARKDAWIN-3.2.0.apk
 
 # أو: انقل الملف للجهاز وافتحه من مدير الملفات
 ```
@@ -235,7 +241,7 @@ adb install GT-MARKDAWIN-3.1.0.apk
 ├───────────────────────────────┴──┴───────────────────────────────┤
 │  📝 250 كلمة  # 1,423 حرف  ≡ 48 سطر  ↔ RTL  ⇅ مزامنة          │  الشريط السفلي
 ├──────────────────────────────────────────────────────────────────┤
-│       GT-MARKDAWIN v3.1 · SalehGNUTUX · GPL-3.0                 │  التذييل
+│       GT-MARKDAWIN v3.2 · SalehGNUTUX · GPL-3.0                 │  التذييل
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -536,12 +542,12 @@ GT-MARKDAWIN/
 │
 ├── build/icons/          ← أيقونات مُولَّدة: 16×16 حتى 1024×1024
 ├── flatpak/              ← manifest Flatpak + metainfo.xml
-├── الإصدارات/v3.1.0/    ← جميع الحزم المبنية في مكان واحد
-│   ├── GT-MARKDAWIN-3.1.0.apk
-│   ├── GT-MARKDAWIN-3.1.0-x86_64.AppImage
-│   ├── GT-MARKDAWIN_3.1.0_amd64.deb
-│   ├── GT-MARKDAWIN-3.1.0-x86_64.rpm
-│   └── GT-MARKDAWIN-3.1.0.flatpak
+├── الإصدارات/v3.2.0/    ← جميع الحزم المبنية في مكان واحد
+│   ├── GT-MARKDAWIN-3.2.0.apk
+│   ├── GT-MARKDAWIN-3.2.0-x86_64.AppImage
+│   ├── GT-MARKDAWIN_3.2.0_amd64.deb
+│   ├── GT-MARKDAWIN-3.2.0-x86_64.rpm
+│   └── GT-MARKDAWIN-3.2.0.flatpak
 │
 ├── scripts/
 │   └── build-packages.sh ← سكريبت بناء ذكي (كشف تلقائي + تثبيت ما ينقص فقط)

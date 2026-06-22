@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   Undo2, Redo2, Trash2, ArrowUpDown, Search, FolderOpen,
-  ClipboardCopy, Copy, ClipboardPaste, Eraser,
+  ClipboardCopy, Copy, ClipboardPaste, Eraser, Scissors, ScissorsLineDashed,
 } from 'lucide-react';
 import { useApp } from '../context';
 import { isOfficeFile, officeToMarkdown } from '../lib/officeImport';
@@ -118,8 +118,9 @@ export default function EditorPanel({ style }: Props) {
         }
         const text = await file.text();
         const isHtml = /\.(html?|htm)$/i.test(file.name);
+        const filePath = (file as unknown as { path?: string }).path;
         document.dispatchEvent(new CustomEvent('gt-request-open', {
-          detail: { content: text, isHtml, fileName: file.name },
+          detail: { content: text, isHtml, fileName: file.name, filePath },
         }));
       } catch (err) {
         notify(`تعذّر فتح الملف: ${(err as Error).message}`, 'error');
@@ -190,6 +191,29 @@ export default function EditorPanel({ style }: Props) {
     notify('تم مسح التحديد', 'info');
   }, [editorRef, replaceSelection, notify]);
 
+  // Cut whole document: copy everything to the clipboard, then empty the editor
+  const cutAll = useCallback(async () => {
+    if (!content) { notify('المحرر فارغ', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(content);
+      setContent('');
+      notify('تم قصّ كامل النص ✅', 'success');
+    } catch { notify('تعذّر القصّ — استخدم Ctrl+X', 'error'); }
+  }, [content, setContent, notify]);
+
+  // Cut selection: copy the selected text, then remove it from the editor
+  const cutSelection = useCallback(async () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = content.slice(el.selectionStart, el.selectionEnd);
+    if (!sel) { notify('لا يوجد نص محدّد', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(sel);
+      replaceSelection('');
+      notify('تم قصّ التحديد ✅', 'success');
+    } catch { notify('تعذّر القصّ — استخدم Ctrl+X', 'error'); }
+  }, [content, editorRef, replaceSelection, notify]);
+
   return (
     <div className="panel" style={style}>
       {/* Panel header */}
@@ -219,8 +243,14 @@ export default function EditorPanel({ style }: Props) {
           <button className="tb-btn" title="نسخ كامل النص" onClick={copyAll}>
             <ClipboardCopy size={13} />
           </button>
+          <button className="tb-btn" title="قصّ كامل النص" onClick={cutAll}>
+            <Scissors size={13} />
+          </button>
           <button className="tb-btn" title="نسخ التحديد فقط" onClick={copySelection}>
             <Copy size={13} />
+          </button>
+          <button className="tb-btn" title="قصّ التحديد فقط" onClick={cutSelection}>
+            <ScissorsLineDashed size={13} />
           </button>
           <button className="tb-btn" title="لصق" onClick={pasteClipboard}>
             <ClipboardPaste size={13} />

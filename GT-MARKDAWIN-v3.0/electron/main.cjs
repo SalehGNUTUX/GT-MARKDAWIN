@@ -273,6 +273,18 @@ ipcMain.handle('save-file', async (event, { defaultName, content, mimeType }) =>
   return { success: false };
 });
 
+// ── IPC: Write content directly to a known path (no dialog) — for auto-save ──
+ipcMain.handle('write-file', (_event, { path: filePath, content }) => {
+  try {
+    if (!filePath) return { success: false, error: 'no-path' };
+    const p = filePath.startsWith('file://') ? url.fileURLToPath(filePath) : filePath;
+    fs.writeFileSync(p, content, 'utf-8');
+    return { success: true, path: p };
+  } catch (err) {
+    return { success: false, error: String(err && err.message || err) };
+  }
+});
+
 // ── IPC: Read font as base64 for PDF embedding ───────────────────────────────
 ipcMain.handle('get-font-base64', (_event, fontRelPath) => {
   try {

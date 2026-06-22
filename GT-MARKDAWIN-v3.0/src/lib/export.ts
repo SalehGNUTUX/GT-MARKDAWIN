@@ -143,13 +143,15 @@ ${footer}
 // ── Export Markdown ───────────────────────────────────────────────────────────
 type NotifyFn = (m: string, t?: string) => void;
 
-export async function exportMarkdown(content: string, notify?: NotifyFn): Promise<boolean> {
+export interface SaveResult { success: boolean; path?: string; name?: string }
+
+export async function exportMarkdown(content: string, notify?: NotifyFn): Promise<SaveResult> {
   const filename = `مستند-${getMoroccanTimestamp()}.md`;
 
   if (isElectron()) {
     const res = await window.electronAPI!.saveFile({ defaultName: filename, content });
     if (res.success) notify?.(`تم الحفظ ✅: ${res.path}`, 'success');
-    return !!res.success;
+    return { success: !!res.success, path: res.path, name: res.path?.split('/').pop() };
   }
 
   if (isCapacitor()) {
@@ -164,16 +166,16 @@ export async function exportMarkdown(content: string, notify?: NotifyFn): Promis
         encoding: Encoding.UTF8, // write as text, not base64
       });
       notify?.(`✅ تم الحفظ: Documents/${SAVE_DIR}/${filename}`, 'success');
-      return true;
+      return { success: true, path: `${SAVE_DIR}/${filename}`, name: filename };
     } catch (err) {
       notify?.(`❌ فشل الحفظ: ${String(err)}`, 'error');
-      return false;
+      return { success: false };
     }
   }
 
   downloadBlob(new Blob([content], { type: 'text/markdown;charset=utf-8' }), filename);
   notify?.('تم حفظ ملف Markdown', 'success');
-  return true;
+  return { success: true, name: filename };
 }
 
 // ── Export HTML ───────────────────────────────────────────────────────────────

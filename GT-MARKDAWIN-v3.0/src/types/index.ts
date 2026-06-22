@@ -15,6 +15,14 @@ export interface FontEntry {
   url?: string;
 }
 
+// The file currently bound for auto-save (overwritten in the background).
+// `path` is environment-specific: an absolute path on Electron, a content URI
+// on Android, or empty in the browser (where only localStorage is used).
+export interface CurrentFile {
+  path: string;
+  name: string;
+}
+
 export interface EmojiItem {
   emoji: string;
   name: string;
@@ -40,6 +48,16 @@ export interface AppContextValue {
   setFontSize: (s: number) => void;
   syncScroll: boolean;
   toggleSyncScroll: () => void;
+
+  // ── Auto-save ──
+  autoSaveEnabled: boolean;
+  setAutoSaveEnabled: (v: boolean | ((p: boolean) => boolean)) => void;
+  autoSaveInterval: number; // seconds between background saves
+  setAutoSaveInterval: (v: number) => void;
+  currentFile: CurrentFile | null;
+  setCurrentFile: (f: CurrentFile | null) => void;
+  lastSavedAt: number | null; // timestamp of the last successful save
+  setLastSavedAt: (t: number | null) => void;
 
   view: ViewMode;
   setView: (v: ViewMode) => void;

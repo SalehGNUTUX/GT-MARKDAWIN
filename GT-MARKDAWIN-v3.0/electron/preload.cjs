@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Save file via native dialog
   saveFile: (opts) => ipcRenderer.invoke('save-file', opts),
 
+  // Write content directly to a known path (no dialog) — used by auto-save
+  writeFile: (opts) => ipcRenderer.invoke('write-file', opts),
+
   // Get font as base64 for PDF embedding
   getFontBase64: (fontRelPath) => ipcRenderer.invoke('get-font-base64', fontRelPath),
 

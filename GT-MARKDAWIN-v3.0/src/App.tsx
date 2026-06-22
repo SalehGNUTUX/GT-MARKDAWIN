@@ -22,21 +22,34 @@ import { isOfficeFile, officeToMarkdown, base64ToArrayBuffer } from './lib/offic
 // ── Detect environment ────────────────────────────────────────────────────────
 const isElectronEnv = () => typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
 const isCapacitorEnv = () => typeof (window as any).Capacitor !== 'undefined';
-const isMobile = () => /Android|iPhone|iPad/i.test(navigator.userAgent);
-
-// ── Documents save path ───────────────────────────────────────────────────────
-const SAVE_DIR = 'MARKDAWIN';
 
 export default function App() {
-  const { theme, fontFamily, fontSize, content, setContent, notify } = useApp();
+  const {
+    theme, fontFamily, fontSize, content, setContent, notify,
+    autoSaveEnabled, setAutoSaveEnabled, autoSaveInterval,
+    currentFile, setCurrentFile, setLastSavedAt,
+  } = useApp();
   const [dragOver, setDragOver]         = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string; message: string;
     onSave: () => void; onDiscard: () => void; onCancel: () => void;
   } | null>(null);
   const [closeDialog, setCloseDialog]   = useState(false);
+  // One-time prompt offering to turn on auto-save (on open / first edit)
+  const [autoSavePrompt, setAutoSavePrompt] = useState<{ fileName?: string } | null>(null);
   const isIntentionalClose = useRef(false); // bypass beforeunload after user confirms
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Always-fresh snapshots for use inside timers/callbacks (avoid stale closures)
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const currentFileRef = useRef(currentFile);
+  currentFileRef.current = currentFile;
+  const autoSaveEnabledRef = useRef(autoSaveEnabled);
+  autoSaveEnabledRef.current = autoSaveEnabled;
+  const dirtyRef = useRef(false);            // content changed since last save?
+  const lastSavedContentRef = useRef<string | null>(null); // text of the last save
+  const newDocPromptedRef = useRef(false);   // already prompted for a fresh doc?
+  const startedEmptyRef = useRef(!content.trim() || content === DEFAULT_CONTENT);
 
   // ── CSS variables for font ────────────────────────────────────────────────
   useEffect(() => {
@@ -64,89 +77,156 @@ export default function App() {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
-  // ── Auto-save to Documents/MARKDAWIN/ ─────────────────────────────────────
-  const autoSave = useCallback(async (text: string) => {
-    if (!text.trim()) return;
-
+  // ── Save helpers ──────────────────────────────────────────────────────────
+  // Write directly to the bound file (no dialog). Returns true on success.
+  const saveToCurrentFile = useCallback(async (text: string): Promise<boolean> => {
+    const cf = currentFileRef.current;
+    if (!cf?.path) return false;
     try {
-      const timestamp = new Date().toLocaleString('fr-MA', {
-        timeZone: 'Africa/Casablanca',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit',
-      }).replace(/[/: ]/g, '-');
-
-      const filename = `auto-${timestamp}.md`;
-
-      if (isElectronEnv()) {
-        // Electron: write to ~/Documents/MARKDAWIN/
-        const api = window.electronAPI!;
-        await api.saveFile({
-          defaultName: `${SAVE_DIR}/${filename}`,
-          content: text,
-        });
+      if (isElectronEnv() && window.electronAPI?.writeFile) {
+        const res = await window.electronAPI.writeFile({ path: cf.path, content: text });
+        if (!res.success) return false;
       } else if (isCapacitorEnv()) {
-        // Android: write to Documents/MARKDAWIN/ — must use Encoding.UTF8
         const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-        await Filesystem.mkdir({
-          path: SAVE_DIR,
-          directory: Directory.Documents,
-          recursive: true,
-        }).catch(() => {});
-        await Filesystem.writeFile({
-          path: `${SAVE_DIR}/${filename}`,
-          data: text,                    // plain UTF-8 string
-          directory: Directory.Documents,
-          encoding: Encoding.UTF8,       // tells Capacitor to write as text, not base64
-        });
-        notify(`✅ حُفظ في Documents/${SAVE_DIR}/${filename}`, 'success');
+        if (cf.path.startsWith('content://') || cf.path.startsWith('file://')) {
+          await Filesystem.writeFile({ path: cf.path, data: text, encoding: Encoding.UTF8 });
+        } else {
+          await Filesystem.writeFile({
+            path: cf.path, data: text, directory: Directory.Documents, encoding: Encoding.UTF8,
+          });
+        }
       } else {
-        // Browser: localStorage only
-        localStorage.setItem('gt-md-content', text);
+        return false; // browser has no real file handle
       }
-    } catch (err) {
-      console.warn('Auto-save failed:', err);
+      setLastSavedAt(Date.now());
+      dirtyRef.current = false;
+      lastSavedContentRef.current = text;
+      return true;
+    } catch {
+      return false;
     }
-  }, [notify]);
+  }, [setLastSavedAt]);
 
-  // Debounced auto-save trigger
+  // Background auto-save tick — silent; the status bar reflects the result
+  const doAutoSave = useCallback(async () => {
+    const text = contentRef.current;
+    if (!text.trim()) return;
+    if (currentFileRef.current?.path) {
+      const ok = await saveToCurrentFile(text);
+      if (!ok) notify('تعذّر الحفظ التلقائي — تحقّق من الملف', 'error');
+    } else if (!isElectronEnv() && !isCapacitorEnv()) {
+      // Browser: persist to localStorage and mark the save time
+      try { localStorage.setItem('gt-md-content', text); } catch {}
+      setLastSavedAt(Date.now());
+      dirtyRef.current = false;
+      lastSavedContentRef.current = text;
+    }
+  }, [saveToCurrentFile, notify, setLastSavedAt]);
+
+  // Manual save (Ctrl+S / close dialog): write to the bound file, else "Save As"
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    const text = contentRef.current;
+    if (currentFileRef.current?.path && (isElectronEnv() || isCapacitorEnv())) {
+      const ok = await saveToCurrentFile(text);
+      notify(ok ? `حُفظ: ${currentFileRef.current?.name ?? ''} ✅` : 'تعذّر الحفظ', ok ? 'success' : 'error');
+      return ok;
+    }
+    const res = await exportMarkdown(text, notify as any);
+    if (res.success && res.path) {
+      setCurrentFile({ path: res.path, name: res.name ?? res.path.split('/').pop() ?? 'مستند' });
+      dirtyRef.current = false;
+      setLastSavedAt(Date.now());
+    }
+    return res.success;
+  }, [saveToCurrentFile, notify, setCurrentFile, setLastSavedAt]);
+  const saveNowRef = useRef(saveNow);
+  saveNowRef.current = saveNow;
+
+  // Mark the document dirty whenever content changes
+  useEffect(() => { dirtyRef.current = true; }, [content]);
+
+  // ── Periodic background auto-save (only when enabled) ──────────────────────
   useEffect(() => {
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => autoSave(content), 30000); // 30s
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [content, autoSave]);
+    if (!autoSaveEnabled) return;
+    const id = setInterval(() => {
+      // Only write when there are real, unsaved changes
+      if (dirtyRef.current && contentRef.current !== lastSavedContentRef.current) doAutoSave();
+    }, Math.max(5, autoSaveInterval) * 1000);
+    return () => clearInterval(id);
+  }, [autoSaveEnabled, autoSaveInterval, doAutoSave]);
 
-  // Always-fresh content snapshot — avoids stale closures when files are opened
-  // in quick succession (the confirm dialog must compare the LATEST editor text).
-  const contentRef = useRef(content);
-  contentRef.current = content;
+  // ── Turning auto-save on without a bound file → ask where to save (once) ───
+  useEffect(() => {
+    if (!autoSaveEnabled || currentFile) return;
+    if (!isElectronEnv() && !isCapacitorEnv()) return; // browser uses localStorage
+    let cancelled = false;
+    (async () => {
+      const res = await exportMarkdown(contentRef.current, notify as any);
+      if (cancelled) return;
+      if (res.success && res.path) {
+        setCurrentFile({ path: res.path, name: res.name ?? res.path.split('/').pop() ?? 'مستند' });
+        dirtyRef.current = false;
+        setLastSavedAt(Date.now());
+      } else {
+        setAutoSaveEnabled(false); // cancelled the save dialog → keep it off
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSaveEnabled]);
+
+  // ── Prompt to enable auto-save when the user starts a fresh document ───────
+  useEffect(() => {
+    if (autoSaveEnabled || newDocPromptedRef.current || currentFile) return;
+    if (!startedEmptyRef.current) return;                  // only for an empty/new start
+    if (!content.trim() || content === DEFAULT_CONTENT) return; // not edited yet
+    newDocPromptedRef.current = true;
+    setAutoSavePrompt({});
+  }, [content, autoSaveEnabled, currentFile]);
 
   // ── Helper: ask user to save before replacing content ─────────────────────
   const confirmBeforeOpen = useCallback((
     newContent: string,
     isHtml: boolean,
     fileName: string,
+    filePath?: string,
   ) => {
     const current = contentRef.current;
+
+    const openNow = () => {
+      if (isHtml) {
+        document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
+        return;
+      }
+      setContent(newContent);
+      // Bind the opened text file for auto-save (office imports / browser → untitled,
+      // because we must never overwrite a .docx/.odt with markdown).
+      if (filePath && (isElectronEnv() || isCapacitorEnv())) {
+        setCurrentFile({ path: filePath, name: fileName });
+      } else {
+        setCurrentFile(null);
+      }
+      dirtyRef.current = false;
+      // Offer to enable auto-save (only when it's currently off)
+      if (!autoSaveEnabledRef.current) {
+        newDocPromptedRef.current = true;
+        setAutoSavePrompt({ fileName });
+      }
+    };
+
     if (!current.trim() || current === DEFAULT_CONTENT) {
       // Editor is empty or still shows the untouched welcome text — open directly
-      if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
-      else setContent(newContent);
+      openNow();
       notify(`تم فتح: ${fileName}`, 'success');
       return;
     }
-
-    const openNow = () => {
-      if (isHtml) document.dispatchEvent(new CustomEvent('gt-preview-html', { detail: newContent }));
-      else setContent(newContent);
-    };
 
     setConfirmDialog({
       title:   'هل تريد حفظ التغييرات الحالية؟',
       message: `ستُفتح "${fileName}" وسيُستبدل المحتوى الحالي.`,
       onSave: async () => {
-        // Save current content to storage first (native dialog on سطح المكتب)
-        const saved = await exportMarkdown(contentRef.current, notify as any);
-        // If the user cancelled the save dialog, keep the editor as-is and don't open
+        // Save the current work first (to its bound file, or via Save As)
+        const saved = await saveNowRef.current();
         if (!saved) {
           setConfirmDialog(null);
           notify('أُلغي الحفظ — لم يُفتح الملف', 'info');
@@ -163,15 +243,15 @@ export default function App() {
       },
       onCancel: () => setConfirmDialog(null),
     });
-  }, [setContent, notify]);
+  }, [setContent, setCurrentFile, notify]);
 
   // ── Shared open request (from المحرر / المعاينة open buttons) ─────────────
   useEffect(() => {
     const handler = (e: Event) => {
-      const { content: c, isHtml, fileName } = (e as CustomEvent<{
-        content: string; isHtml: boolean; fileName: string;
+      const { content: c, isHtml, fileName, filePath } = (e as CustomEvent<{
+        content: string; isHtml: boolean; fileName: string; filePath?: string;
       }>).detail;
-      confirmBeforeOpen(c, isHtml, fileName);
+      confirmBeforeOpen(c, isHtml, fileName, filePath);
     };
     document.addEventListener('gt-request-open', handler);
     return () => document.removeEventListener('gt-request-open', handler);
@@ -182,12 +262,12 @@ export default function App() {
     const h = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        exportMarkdown(contentRef.current, notify as any);
+        saveNowRef.current();
       }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [notify]);
+  }, []);
 
   // ── Electron: listen for files opened via OS file manager ────────────────
   useEffect(() => {
@@ -209,7 +289,8 @@ export default function App() {
         }
         return;
       }
-      confirmBeforeOpen(data.content ?? '', !!data.isHtml, name);
+      // Bind the real path so auto-save overwrites the same file
+      confirmBeforeOpen(data.content ?? '', !!data.isHtml, name, data.filePath);
     });
     return () => api.removeOpenFileListener?.();
   }, [confirmBeforeOpen]);
@@ -336,7 +417,9 @@ export default function App() {
       }
       const text = await file.text();
       const isHtml = /\.(html?|htm)$/i.test(file.name);
-      confirmBeforeOpen(text, isHtml, file.name);
+      // Electron exposes the real path on dropped File objects
+      const filePath = (file as unknown as { path?: string }).path;
+      confirmBeforeOpen(text, isHtml, file.name, filePath);
     } catch (err) {
       notify(`خطأ في قراءة الملف: ${String((err as Error).message || err)}`, 'error');
     }
@@ -386,6 +469,29 @@ export default function App() {
         <ErrorBoundary><SplitPane /></ErrorBoundary>
         <EmojiPanel />
       </div>
+
+      {/* ── Auto-save offer banner (non-blocking, bottom of the app) ── */}
+      {autoSavePrompt && !autoSaveEnabled && (
+        <div className="autosave-banner">
+          <span className="autosave-banner-text">
+            💾 {autoSavePrompt.fileName
+              ? `تفعيل الحفظ التلقائي إلى «${autoSavePrompt.fileName}»؟`
+              : 'فعِّل الحفظ التلقائي حتى لا تفقد عملك.'}
+          </span>
+          <div className="autosave-banner-actions">
+            <button className="btn btn-primary btn-sm" onClick={() => {
+              setAutoSavePrompt(null);
+              setAutoSaveEnabled(true);
+            }}>
+              تفعيل
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setAutoSavePrompt(null)}>
+              لاحقًا
+            </button>
+          </div>
+        </div>
+      )}
+
       <StatusBar />
       <Footer />
 
@@ -448,9 +554,8 @@ export default function App() {
                 إغلاق بدون حفظ
               </button>
               <button className="btn btn-primary" onClick={async () => {
-                await autoSave(content);
-                notify('تم الحفظ ✅', 'success');
-                setTimeout(doClose, 600);
+                const ok = await saveNowRef.current();
+                if (ok) setTimeout(doClose, 400);
               }}>
                 💾 حفظ وإغلاق
               </button>

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Undo2, Redo2, Bold, Italic, Strikethrough, Code, Braces,
   Quote, Minus, Link2, Image, Video, Music, Film, Table2,
@@ -15,11 +17,15 @@ interface TBtnProps {
   disabled?: boolean;
 }
 
+// Uses `data-tip` (not the native `title`) so the toolbar can render its own
+// tooltip ABOVE the button — the native one shows below and overlapped the
+// editor/preview action bar directly underneath the toolbar.
 function TBtn({ title, onClick, children, className = '', disabled }: TBtnProps) {
   return (
     <button
       className={`tb-btn ${className}`}
-      title={title}
+      data-tip={title}
+      aria-label={title}
       onClick={onClick}
       disabled={disabled}
     >
@@ -34,6 +40,20 @@ function Sep() {
 
 export default function Toolbar() {
   const { insertAtCursor, openModal, undo, redo, canUndo, canRedo, direction } = useApp();
+
+  // Custom tooltip shown ABOVE the hovered button (portal → escapes the
+  // toolbar's horizontal-scroll overflow which would clip a CSS tooltip).
+  const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const onTipOver = (e: React.MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest?.('.tb-btn[data-tip]') as HTMLElement | null;
+    if (!btn) { setTip(null); return; }
+    const r = btn.getBoundingClientRect();
+    setTip({ text: btn.getAttribute('data-tip') || '', x: r.left + r.width / 2, y: r.top });
+  };
+  const onTipOut = (e: React.MouseEvent) => {
+    const to = e.relatedTarget as HTMLElement | null;
+    if (!to || !to.closest?.('.tb-btn[data-tip]')) setTip(null);
+  };
 
   const modal = (id: ModalId) => () => openModal(id);
 
@@ -53,7 +73,17 @@ export default function Toolbar() {
     () => insertAtCursor('\n' + '#'.repeat(n) + ' ', '', 'عنوان');
 
   return (
-    <div className="toolbar" role="toolbar" aria-label="شريط الأدوات">
+    <div
+      className="toolbar"
+      role="toolbar"
+      aria-label="شريط الأدوات"
+      onMouseOver={onTipOver}
+      onMouseOut={onTipOut}
+    >
+      {tip && createPortal(
+        <div className="tb-tooltip" style={{ left: tip.x, top: tip.y }}>{tip.text}</div>,
+        document.body,
+      )}
       {/* ── History ── */}
       <div className="toolbar-group">
         <TBtn title="تراجع (Ctrl+Z)" onClick={undo} disabled={!canUndo}>

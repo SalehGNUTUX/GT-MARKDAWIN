@@ -63,7 +63,7 @@ Single `AppContext` (no Redux) holds all application state. Key design choices:
 
 ### App-level logic — `src/App.tsx`
 All cross-cutting concerns live here (not in context):
-- **Auto-save** (`SAVE_DIR = 'MARKDAWIN'`): debounced 30s, writes to `~/Documents/MARKDAWIN/auto-*.md`. Uses `Filesystem.writeFile({ encoding: Encoding.UTF8 })` on Android — never pass `'utf8' as any` (that writes base64, corrupting Arabic text).
+- **Auto-save** (opt-in, redesigned in v3.2 — the old "save-dialog every 30s" is gone): writes **directly to the bound file in the background, no dialog**. State lives in context: `autoSaveEnabled`, `autoSaveInterval` (seconds), `currentFile {path,name}`, `lastSavedAt` (all but `lastSavedAt` persisted). A `setInterval` keyed on `[autoSaveEnabled, autoSaveInterval]` calls `doAutoSave` when `dirtyRef` is set and content differs from `lastSavedContentRef`. `saveToCurrentFile` uses the **`write-file` IPC** on Electron (direct `fs.writeFileSync`), `Filesystem.writeFile({encoding:UTF8})` on Android, localStorage in the browser. `currentFile` is bound when a plain `.md/.txt` file is opened (real path from `data.filePath`, Electron `File.path`, or drop `file.path`) — **never bound for office imports** (would overwrite a `.docx` with markdown) or HTML-to-preview. Turning auto-save on with no bound file triggers one "Save As" to establish the path (effect keyed on `[autoSaveEnabled]`). A non-blocking `.autosave-banner` offers to enable it on open / first edit of an empty doc (guarded by `newDocPromptedRef`/`startedEmptyRef` so it never nags). The StatusBar hosts the toggle + interval `<select>` + "✓ حُفظ HH:MM:SS" indicator. `Ctrl+S` and "save & close" both call `saveNow` (write to bound file, else Save As). `saveNowRef`/`contentRef`/`currentFileRef` keep these stable inside callbacks.
 - **Confirm before open**: every open path (in-app button, drag-drop, OS "Open with") funnels through `confirmBeforeOpen`. The in-app open buttons (editor + preview) dispatch a `gt-request-open` CustomEvent that App.tsx listens for — they do NOT call `setContent` directly. When the editor has real content (non-empty and ≠ `DEFAULT_CONTENT`) it shows a 3-button dialog (Save / Discard / Cancel); the Save path runs `exportMarkdown` (real save dialog on desktop) and aborts the open if the user cancels saving. `confirmBeforeOpen` reads the latest content via `contentRef` (not the `content` closure) so rapid successive opens compare against fresh text.
 - **Close confirmation**: Electron intercepts `beforeunload` with `isIntentionalClose` ref. When user confirms close, calls `window.electronAPI.forceClose()` → IPC `force-close` → `win.destroy()` on main process. **Do not use `window.close()` for the intentional close path** — it re-fires `beforeunload` causing an infinite loop.
 - **Android back button**: Capacitor `App.addListener('backButton')` shows the close confirmation dialog.
@@ -93,7 +93,8 @@ KaTeX CSS is imported as an inline string via `import katexCSS from 'katex/dist/
 IPC handlers:
 - `force-close`: calls `win.destroy()` — bypasses `beforeunload`, used when user confirms close dialog
 - `print-to-pdf`: creates hidden window, loads HTML as base64 data URL, prints to PDF, shows native save dialog
-- `save-file`: shows native save dialog, writes content to chosen path
+- `save-file`: shows native save dialog, writes content to chosen path (used for "Save As")
+- `write-file`: writes content directly to a given path — **no dialog**; backs background auto-save
 - `get-font-base64`: reads a font from `dist/fonts/` (unpacked from ASAR) and returns it as base64 for embedding in PDF
 - `convert-office`: receives `{name, dataBase64}`, writes a temp file, runs LibreOffice headless (`soffice --headless --convert-to html:"HTML (StarWriter)"`) into a temp profile dir, returns `{success, html}` or `{success:false, reason:'no-libreoffice'}` (see Office import below)
 - `renderer-ready` (on, not handle): the renderer signals it registered its `open-file` listener; main then flushes `pendingFileToOpen`
@@ -123,13 +124,21 @@ The panel position is set via CSS custom properties `--emoji-panel-top` and `--e
 
 Emoji buttons use `onMouseDown={(e) => e.preventDefault()}` to prevent stealing focus from the editor textarea. After inserting, `requestAnimationFrame` scrolls the textarea to keep the cursor visible.
 
+### Two toolbars + tooltip placement
+- The **top formatting bar** is `src/components/Toolbar.tsx` (markdown insert actions). The **per-panel action bars** are the `.panel-header .panel-actions` rows inside `EditorPanel.tsx` / `PreviewPanel.tsx` (undo/redo, clipboard, open, export, zoom, copy-preview). Both reuse the `.tb-btn` class.
+- **Clipboard/cut tools live in the EditorPanel header**, not the top toolbar: copy-all, cut-all, copy-selection, cut-selection, paste, delete-selection (lucide `ClipboardCopy/Scissors/Copy/ScissorsLineDashed/ClipboardPaste/Eraser`). They act on the textarea selection via `navigator.clipboard` + a local `replaceSelection`.
+- **Tooltips**: the top toolbar's buttons use `data-tip` (+ `aria-label`), NOT the native `title`, and Toolbar renders a single `.tb-tooltip` **above** the hovered button via `createPortal(..., document.body)` positioned from `getBoundingClientRect()`. This is required because `.toolbar` has `overflow-x:auto` (horizontal scroll) which would clip a CSS `::after` tooltip, and the native `title` showed *below* and overlapped the panel action bar directly beneath. The panel-header buttons intentionally keep native `title` + the `.tb-btn[title]:hover::after` (below) — do not convert them.
+
 ### CSS architecture
 - `src/styles/index.css`: theming via `[data-theme="dark/light"]` CSS custom properties on `:root`, app layout, responsive breakpoints (< 700px hides `.header-brand-text`, < 480px full mobile layout)
 - `src/styles/preview.css`: Markdown content styling + RTL/LTR directional overrides + `@media print` (hides all chrome)
 - `public/fonts.css`: `@font-face` declarations with paths relative to the HTML file — loaded directly from `index.html`, NOT imported through Vite, so font paths resolve correctly in both dev and packaged builds
 
+### Repository & release layout
+This folder (`GT-MARKDAWIN-v3.0/`) is a **subdirectory** of the GitHub repo `SalehGNUTUX/GT-MARKDAWIN` (default branch `main`). The repo root is a **GitHub Pages site** (`index.html`) that runs the live web app from `GT-MARKDAWIN-v3.0/dist/index.html` (so the committed `dist/` IS the deployment — `vite base:'./'` makes it work at that sub-path) and links downloads to **GitHub Releases**. The repo is small (~7 MB): it tracks source + `dist/` (with a **curated 138-emoji subset** only — the local working tree has thousands; exclude `dist/emojis/` when syncing or you balloon the repo) but historically did **not** track `electron/` (added in v3.1). Built packages live on Releases (tag `GT-MARKDAWIN-3.x`), not in the repo. Commits/releases must be **SalehGNUTUX only, in Arabic, with zero Claude attribution** (no `Co-Authored-By`, no "Generated with").
+
 ### RPM packaging workaround
-The project path contains Arabic characters and spaces, which causes `rpmbuild` to fail when invoked from the project directory. `scripts/build-packages.sh` extracts the DEB to `/tmp/gt-md-rpm-build` and runs `rpmbuild` from there. The `%files` section lists only top-level directories (`/opt/GT-MARKDAWIN`, `/usr/share/applications`, `/usr/share/icons`, `/usr/share/doc`) to avoid per-file listing of font files with spaces and parentheses in their names.
+The project path contains Arabic characters and spaces, which causes `rpmbuild` to fail when invoked from the project directory. `scripts/build-packages.sh` extracts the DEB to `/tmp/gt-md-rpm-build` and runs `rpmbuild` from there. The `%files` section lists top-level directories (`/opt/GT-MARKDAWIN`, `/usr/share/applications`, `/usr/share/icons`, `/usr/share/doc`) **plus `/usr/share/mime/packages/gt-markdawin.xml`** (generated by the office `fileAssociations`), and sets `_unpackaged_files_terminate_build 0` so stray paths don't fail the build. The APK build's `find` for `app-release.apk` must use an **absolute** path (it runs after `cd` back to the project root).
 
 ### Android icon sizing
 Android launcher icons must have padding — the icon image should fill **72% of the canvas** (14% padding on each side). Without padding, the icon appears zoomed-in on the home screen. The `ic_launcher_foreground.png` (for adaptive icons on Android 8+) should have the icon filling only 50% of its canvas, since Android applies additional clipping.
@@ -161,3 +170,6 @@ Android launcher icons must have padding — the icon image should fill **72% of
 | `gt-md-fontsize` | `16` | font size (px) |
 | `gt-md-sync` | `true` | scroll sync enabled |
 | `gt-md-custom-fonts` | `[]` | user-imported fonts |
+| `gt-md-autosave` | `false` | background auto-save enabled |
+| `gt-md-autosave-interval` | `30` | seconds between auto-saves |
+| `gt-md-current-file` | `null` | `{path,name}` bound for auto-save |

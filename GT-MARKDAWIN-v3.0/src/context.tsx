@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useEffect,
 } from 'react';
-import type { AppContextValue, Theme, Direction, ViewMode, ModalId, NotifType, NotifItem, FontEntry } from './types';
+import type { AppContextValue, Theme, Direction, ViewMode, ModalId, NotifType, NotifItem, FontEntry, CurrentFile } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { insertAroundSelection } from './lib/insertText';
 
@@ -130,6 +130,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [syncScroll, setSyncScroll] = useLocalStorage('gt-md-sync', true);
   const [customFonts, setCustomFonts] = useLocalStorage<FontEntry[]>('gt-md-custom-fonts', []);
 
+  // Auto-save settings (persisted) — opt-in, with a configurable interval
+  const [autoSaveEnabled, setAutoSaveEnabled] = useLocalStorage('gt-md-autosave', false);
+  const [autoSaveInterval, setAutoSaveInterval] = useLocalStorage('gt-md-autosave-interval', 30);
+  const [currentFile, setCurrentFile] = useLocalStorage<CurrentFile | null>('gt-md-current-file', null);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+
   // Ephemeral UI state
   const [view, setView] = useState<ViewMode>('split');
   const [activeModal, setActiveModal] = useState<ModalId | null>(null);
@@ -240,6 +246,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFontSize,
     syncScroll,
     toggleSyncScroll: () => setSyncScroll(s => !s),
+
+    autoSaveEnabled,
+    setAutoSaveEnabled,
+    autoSaveInterval,
+    setAutoSaveInterval,
+    currentFile,
+    setCurrentFile,
+    lastSavedAt,
+    setLastSavedAt,
 
     view,
     setView,
